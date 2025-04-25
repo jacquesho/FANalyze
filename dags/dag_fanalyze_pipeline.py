@@ -4,24 +4,21 @@ from datetime import datetime
 from pathlib import Path
 from airflow.decorators import dag, task
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 
 SHOWS_TABLE = "FANALYZE.PUBLIC.STAGING_SHOWS"
 SETLISTS_TABLE = "FANALYZE.PUBLIC.STAGING_SETLISTS"
 
+FACT_SQL_FILES = [
+    "sql/insert_fact_shows.sql",
+    "sql/insert_fact_setlists.sql",
+    "sql/insert_fact_song_stats.sql",
+    "sql/insert_fact_artists.sql",
+]
+
 
 def get_snowflake_hook():
     return SnowflakeHook(snowflake_conn_id="SF_JHo_connection")
-
-
-@task
-def truncate_staging_table():
-    hook = get_snowflake_hook()
-    try:
-        hook.run(f"TRUNCATE TABLE {SHOWS_TABLE};")
-        print(f"✅ Truncated table: {SHOWS_TABLE}")
-    except Exception as e:
-        print(f"❌ Failed to truncate table: {e}")
-        raise
 
 
 @task
@@ -68,7 +65,7 @@ def parse_and_batch_insert_shows(csv_path: str):
         hook = get_snowflake_hook()
         insert_stmt = f"""
             INSERT INTO {SHOWS_TABLE} (
-                ARTIST_ID, ARTIST_NAME, DATE, SETLIST_ID,
+                ARTIST_ID, ARTIST_NAME, SHOW_DATE, SHOW_ID,
                 VENUE, CITY, COUNTRY, TOUR_NAME,
                 TICKET_TIER, SIMULATED_PRICE_USD
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -118,7 +115,7 @@ def parse_and_batch_insert_setlists(json_path: str):
             for row in rows:
                 setlist_id, raw_json = row
                 cursor.execute(
-                    f"INSERT INTO {SETLISTS_TABLE} (SETLIST_ID, SETLIST) SELECT %s, PARSE_JSON(%s)",
+                    f"INSERT INTO {SETLISTS_TABLE} (SHOW_ID, SETLIST) SELECT %s, PARSE_JSON(%s)",
                     (setlist_id, raw_json),
                 )
             print(f"✅ Successfully inserted {len(rows)} rows into {SETLISTS_TABLE}")
@@ -127,8 +124,22 @@ def parse_and_batch_insert_setlists(json_path: str):
             raise
 
 
+@task
+def run_fact_sql(sql_file: str):
+    print(f"Running transformation SQL file: {sql_file}")
+    hook = get_snowflake_hook()
+    with open(sql_file, "r") as f:
+        sql = f.read()
+    try:
+        hook.run(sql)
+        print(f"✅ Successfully ran SQL: {sql_file}")
+    except Exception as e:
+        print(f"❌ Failed to run SQL {sql_file}: {e}")
+        raise
+
+
 @dag(
-    dag_id="fanalyze_dag",
+    dag_id="fanalyze_pipeline",
     schedule_interval=None,
     start_date=datetime(2025, 4, 1),
     catchup=False,
@@ -138,11 +149,17 @@ def fanalyze_staging_pipeline():
     csv_path = find_show_csv()
     json_path = find_setlist_json()
 
-    truncate = truncate_staging_table()
     load_shows = parse_and_batch_insert_shows(csv_path)
     load_setlists = parse_and_batch_insert_setlists(json_path)
 
-    truncate >> load_shows >> load_setlists
+    transform_tasks = [
+        run_fact_sql.override(task_id=f"run_{Path(sql).stem}")(sql)
+        for sql in FACT_SQL_FILES
+    ]
+
+    # Chain the tasks using TaskFlow objects (not returned values)
+    csv_path >> load_shows >> json_path >> load_setlists
+    load_setlists >> transform_tasks
 
 
 fanalyze_staging_pipeline()

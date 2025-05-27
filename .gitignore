@@ -45,3 +45,34 @@ desktop.ini
 *.pem
 *.key
 *.crt
+
+# Ignore dbt's user-specific files
+dbt_packages/
+dbt_modules/
+logs/
+target/
+
+# Sensitive configs
+.env
+.env.*
+*.key
+*.pem
+
+# Snowflake + dbt profiles (real credentials)
+~/.dbt/
+profiles.yml
+*.secrets.yml
+
+# OS or editor files
+.DS_Store
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+
+# VSCode workspace config (optional, if personal)
+*.code-workspace
+.vscode/
+
+kafka/.env-kafka

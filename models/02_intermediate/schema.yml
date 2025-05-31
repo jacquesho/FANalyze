@@ -1,0 +1,15 @@
+version: 2
+models:
+- name: int_flattened_setlists
+  description: Flattened and ordered list of songs per show from nested setlist JSON.
+  columns:
+  - name: show_id
+    description: Unique show identifier
+    tests:
+    - not_null
+  - name: song_name
+    description: Name of the song played
+    tests:
+    - not_null
+  - name: song_position
+    description: Order in which the song was played

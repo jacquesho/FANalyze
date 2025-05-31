@@ -1,0 +1,15 @@
+version: 2
+models:
+- name: dim_artists
+  description: Dimension table containing artist metadata including ID, name, and
+    genres.
+  columns:
+  - name: artist_id
+    description: Unique identifier for the artist
+    tests:
+    - not_null
+    - unique
+  - name: artist_name
+    description: Name of the artist
+  - name: artist_genre
+    description: Genres associated with the artist

@@ -23,11 +23,14 @@ def get_snowflake_hook():
 
 @task
 def find_show_csv() -> str:
-    files = list(Path("/opt/airflow/data").rglob("*"))
+    BASE    = Path(__file__).resolve().parent.parent
+    STAGING = BASE / "01_staging" / "setlistfm_data"
+    files   = list(STAGING.rglob("*.csv"))
+
     print("Found files in /opt/airflow/data:", [str(f) for f in files])
     csvs = [f for f in files if f.name.endswith(".csv")]
     if not csvs:
-        raise FileNotFoundError("No CSV file found in /opt/airflow/data")
+        raise FileNotFoundError("No CSV file found in {STAGING}")
     return str(csvs[0])
 
 
@@ -80,11 +83,14 @@ def parse_and_batch_insert_shows(csv_path: str):
 
 @task
 def find_setlist_json() -> str:
-    files = list(Path("/opt/airflow/data").rglob("*"))
+    BASE    = Path(__file__).resolve().parent.parent
+    STAGING = BASE / "01_staging" / "setlistfm_data"
+    files   = list(STAGING.rglob("*.json"))
+
     print("Found files in /opt/airflow/data:", [str(f) for f in files])
     jsons = [f for f in files if f.name.endswith(".json")]
     if not jsons:
-        raise FileNotFoundError("No JSON file found in /opt/airflow/data")
+        raise FileNotFoundError("No JSON file found in {STAGING}")
     return str(jsons[0])
 
 

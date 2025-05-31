@@ -1,0 +1,31 @@
+version: 2
+models:
+- name: stg_shows
+  description: Staging model for raw concert show data. Cleans string fields and filters
+    invalid rows.
+  columns:
+  - name: show_id
+    description: Unique identifier for the show
+    tests:
+    - not_null
+    - unique
+  - name: artist_id
+    description: ID of the performing artist
+    tests:
+    - not_null
+  - name: show_date
+    description: Date of the concert
+    tests:
+    - not_null
+  - name: venue
+    description: Venue name
+  - name: city
+    description: City where the show took place
+  - name: country
+    description: Country of the show
+  - name: tour_name
+    description: Name of the tour
+  - name: ticket_tier
+    description: Pricing tier for the ticket
+  - name: simulated_price_usd
+    description: Simulated ticket price in USD

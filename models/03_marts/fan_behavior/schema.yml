@@ -1,0 +1,15 @@
+version: 2
+models:
+- name: fct_song_stats
+  description: Fact table with play counts per song per artist.
+  columns:
+  - name: artist_id
+    description: Artist ID for the song
+    tests:
+    - not_null
+  - name: song_name
+    description: Song name
+    tests:
+    - not_null
+  - name: play_count
+    description: Number of times the song has been performed

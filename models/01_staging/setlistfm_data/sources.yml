@@ -1,10 +1,12 @@
+# models/01_staging/setlistfm_data/sources.yml
+
 version: 2
+
 sources:
-- name: setlistfm
-  database: FANALYZE
-  schema: PUBLIC
-  tables:
-  - name: staging_shows
-    description: Raw show-level concert data from setlist.fm
-  - name: staging_setlists
-    description: Raw setlist data in nested JSON format
+  - name: setlistfm_data
+    database: DB_FANALYZE
+    schema: fanalyze
+    description: "Source data from Setlist.fm"
+    tables:
+      - name: stg_shows_raw
+      - name: stg_setlists_raw

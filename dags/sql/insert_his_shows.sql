@@ -1,8 +1,8 @@
 -- ✅ Create or replace stage for shows
-CREATE OR REPLACE STAGE DB_FANALYZE.STAGING.STAGING_SHOWS_STAGE;
+CREATE OR REPLACE STAGE DB_FANALYZE.FANALYZE.RAW_SHOWS_STAGE;
 
 {% for path in ti.xcom_pull(task_ids='list_staging_files', key='csv_files') %}
-PUT file://{{ path }} @DB_FANALYZE.STAGING.STAGING_SHOWS_STAGE AUTO_COMPRESS=FALSE;
+PUT file://{{ path }} @DB_FANALYZE.FANALYZE.RAW_SHOWS_STAGE AUTO_COMPRESS=FALSE;
 {% endfor %}
 
 -- ✅ Insert using a named file format (must be created beforehand)
@@ -14,7 +14,8 @@ PUT file://{{ path }} @DB_FANALYZE.STAGING.STAGING_SHOWS_STAGE AUTO_COMPRESS=FAL
 --   FIELD_OPTIONALLY_ENCLOSED_BY = '"'
 --   NULL_IF = ('\\N', 'NULL', '');
 
-INSERT INTO DB_FANALYZE.STAGING.STAGING_SHOWS (
+-- insert_raw_shows.sql (comes in via CSV file)
+INSERT INTO DB_FANALYZE.FANALYZE.STG_SHOWS_RAW (
   SHOW_ID,
   ARTIST_ID,
   ARTIST_NAME,
@@ -24,7 +25,8 @@ INSERT INTO DB_FANALYZE.STAGING.STAGING_SHOWS (
   COUNTRY,
   TOUR_NAME,
   TICKET_TIER,
-  SIMULATED_PRICE_USD
+  SIMULATED_PRICE_USD,
+  LOAD_TYPE
 )
 WITH raw_csv AS (
   SELECT
@@ -37,8 +39,10 @@ WITH raw_csv AS (
     $7  AS country,
     $8  AS tour_name,
     $9  AS ticket_tier,
-    TRY_CAST($10 AS FLOAT) AS simulated_price_usd
-  FROM @DB_FANALYZE.STAGING.STAGING_SHOWS_STAGE
-  (FILE_FORMAT => DB_FANALYZE.STAGING.SHOWS_CSV_FORMAT)
+    TRY_CAST($10 AS FLOAT) AS simulated_price_usd,
+    'Historical' AS load_type
+  FROM @DB_FANALYZE.FANALYZE.RAW_SHOWS_STAGE
+  (FILE_FORMAT => DB_FANALYZE.FANALYZE.CSV_FORMAT)
 )
 SELECT * FROM raw_csv;
+

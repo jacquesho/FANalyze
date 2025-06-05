@@ -12,16 +12,16 @@ def upload_setlists_to_stage():
         account=os.getenv("SF_ACCOUNT"),
         warehouse="WH_FANALYZE",
         database="DB_FANALYZE",
-        schema="STAGING",
+        schema="FANALYZE",
         role="ROLE_FANALYZE"
     )
 
     cursor = conn.cursor()
     try:
-        cursor.execute("CREATE OR REPLACE STAGE DB_FANALYZE.STAGING.STAGING_SETLISTS_STAGE")
+        cursor.execute("CREATE OR REPLACE STAGE DB_FANALYZE.FANALYZE.RAW_SETLISTS_STAGE")
         cursor.execute("""
             PUT file:///opt/airflow/models/01_staging/setlistfm_data/all_band_setlists.json
-            @DB_FANALYZE.STAGING.STAGING_SETLISTS_STAGE AUTO_COMPRESS=FALSE
+            @DB_FANALYZE.STAGING.RAW_SETLISTS_STAGE AUTO_COMPRESS=FALSE
         """)
     finally:
         cursor.close()

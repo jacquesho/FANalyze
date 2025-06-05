@@ -11,18 +11,18 @@ def upload_setlists_to_stage():
         account=conn.extra_dejson.get("account"),
         warehouse=conn.extra_dejson.get("warehouse"),
         database=conn.schema.split(".")[0] if "." in conn.schema else conn.schema,
-        schema=conn.schema.split(".")[1] if "." in conn.schema else "STAGING",
+        schema=conn.schema.split(".")[1] if "." in conn.schema else "FANALYZE",
         role=conn.extra_dejson.get("role"),
     )
 
     cursor = sf_conn.cursor()
     try:
         cursor.execute(
-            "CREATE OR REPLACE STAGE DB_FANALYZE.STAGING.STAGING_SETLISTS_STAGE"
+            "CREATE OR REPLACE STAGE DB_FANALYZE.FANALYZE.RAW_SETLISTS_STAGE"
         )
         cursor.execute("""
             PUT file:///opt/airflow/models/01_staging/setlistfm_data/all_band_setlists.json
-            @DB_FANALYZE.STAGING.STAGING_SETLISTS_STAGE AUTO_COMPRESS=FALSE
+            @DB_FANALYZE.FANALYZE.RAW_SETLISTS_STAGE AUTO_COMPRESS=FALSE
         """)
     finally:
         cursor.close()

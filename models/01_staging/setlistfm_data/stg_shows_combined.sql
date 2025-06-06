@@ -1,5 +1,6 @@
 {{ config(materialized='view') }}
 
-select * from {{ ref('stg_shows_raw') }}
+select * from {{ source('setlistfm_data', 'stg_shows_raw') }}
 union all
-select * from {{ ref('stg_shows_inc') }}
+select * from {{ source('setlistfm_data', 'stg_shows_sch') }}
+

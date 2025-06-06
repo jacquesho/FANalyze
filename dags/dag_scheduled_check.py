@@ -68,8 +68,18 @@ def print_date_range(**context):
         raise
 
 
+def debug_fetch_summary(**kwargs):
+    shows = kwargs.get("shows", [])
+    csv_output_path = kwargs.get("csv_output_path", "<not provided>")
+    json_output_path = kwargs.get("json_output_path", "<not provided>")
+
+    print(f"🎵 Found {len(shows)} shows")
+    print(f"📁 Writing CSV to: {csv_output_path}")
+    print(f"📝 Writing JSON to: {json_output_path}")
+
+
 with DAG(
-    dag_id="scheduled_check",
+    dag_id="Scheduled_Show_Check",
     default_args=default_args,
     schedule_interval="@weekly",
     catchup=False,
@@ -91,13 +101,22 @@ with DAG(
         provide_context=True,
         trigger_rule=TriggerRule.ALL_DONE,
     )
+
     fetch_new_data = BashOperator(
         task_id="fetch_recent_shows",
-        bash_command=f"python {SCRIPT_PATH} "
-        f"--outdir {STAGING_DIR} "
-        f"--show_prefix Update_ "
-        f"--setlist_prefix Update_ "
-        f"|| echo 'Command failed with status $?'",  # Add error output
+        bash_command=(
+            "python {{ params.script_path }} "
+            "--outdir {{ params.outdir }} "
+            "--show_prefix Update_ "
+            "--setlist_prefix Update_ "
+            "--start_date {{ ti.xcom_pull(task_ids='get_latest_show_date')[0]['LATEST_DATE'] }} "
+            "--end_date {{ ds }} "
+            "|| echo 'Command failed with status $?'"
+        ),
+        params={
+            "script_path": SCRIPT_PATH,
+            "outdir": STAGING_DIR,
+        },
     )
 
     refresh_lookup = SnowflakeOperator(

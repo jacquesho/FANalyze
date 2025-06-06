@@ -1,46 +1,77 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.bash import BashOperator
-from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
-from airflow.utils.dates import days_ago
+import os
+import sys
+import json
+import requests
+import argparse
+import pandas as pd
 from datetime import datetime
-import pendulum
 
-# DAG Defaults
-default_args = {"owner": "airflow"}
-local_tz = pendulum.timezone("Asia/Ho_Chi_Minh")
+SETLISTFM_API_KEY = os.getenv("uIfQdN5pj3x-tVhY8I617-lLPz9XmX9pW3tT")
+HEADERS = {"Accept": "application/json", "x-api-key": SETLISTFM_API_KEY}
 
-with DAG(
-    dag_id="scheduled_check",
-    default_args=default_args,
-    start_date=days_ago(1),
-    schedule_interval=None,
-    catchup=False,
-    tags=["fanalyze", "scheduled"],
-) as dag:
+parser = argparse.ArgumentParser()
+parser.add_argument("--outdir", required=True)
+parser.add_argument("--start_date", required=True)
+parser.add_argument("--end_date", required=True)
+parser.add_argument("--show_prefix", default="Update_")
+parser.add_argument("--setlist_prefix", default="Update_")
+args = parser.parse_args()
 
-    def get_latest_and_build_command():
-        hook = SnowflakeHook(snowflake_conn_id="fanalyze_conn")
-        sql = "SELECT MAX(latest_known_show) FROM DB_FANALYZE.FANALYZE.DIM_LATEST_SHOW_PER_ARTIST"
-        records = hook.get_first(sql)
-        start_date = records[0].strftime("%Y-%m-%d") if records[0] else "2025-01-01"
+start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
+end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
 
-        end_date = datetime.today().strftime("%Y-%m-%d")
-        print(f"Scheduled fetch: {start_date} to {end_date}")
+band_list = [
+    {"artist_id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "artist_name": "Metallica"}
+]
 
-        return f"""python /opt/airflow/scripts/api_sche
-        duled_check.py \
---outdir /opt/airflow/models/01_staging/setlistfm_data \
---show_prefix Update_ --setlist_prefix Update_ \
---start_date {start_date} --end_date {end_date}"""
+all_shows = []
 
-    fetch_recent_shows = BashOperator(
-        task_id="fetch_recent_shows",
-        bash_command="{{ task_instance.xcom_pull(task_ids='build_api_command') }}",
+for band in band_list:
+    artist_id = band["artist_id"]
+    artist_name = band["artist_name"]
+    print(
+        f"🗖️ Fetching shows for {artist_name} ({artist_id}) between {start_date.date()} and {end_date.date()}"
     )
 
-    build_api_command = PythonOperator(
-        task_id="build_api_command", python_callable=get_latest_and_build_command
-    )
+    page = 1
+    while True:
+        url = f"https://api.setlist.fm/rest/1.0/artist/{artist_id}/setlists?p={page}"
+        response = requests.get(url, headers=HEADERS)
 
-    build_api_command >> fetch_recent_shows
+        if response.status_code != 200:
+            print(
+                f"⚠️ Error fetching page {page} for {artist_name}: {response.status_code}"
+            )
+            break
+
+        data = response.json()
+        setlist_items = data.get("setlist", [])
+
+        if not setlist_items:
+            break
+
+        for show in setlist_items:
+            event_date = datetime.strptime(show["eventDate"], "%d-%m-%Y")
+            if start_date <= event_date <= end_date:
+                all_shows.append(show)
+
+        if page >= int(data.get("@totalPages", 1)):
+            break
+
+        page += 1
+
+if all_shows:
+    outdir = args.outdir
+    os.makedirs(outdir, exist_ok=True)
+
+    df = pd.json_normalize(all_shows)
+    csv_path = os.path.join(outdir, f"{args.show_prefix}shows.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"✅ Wrote CSV to: {csv_path}")
+
+    json_path = os.path.join(outdir, f"{args.setlist_prefix}setlists.json")
+    with open(json_path, "w") as f:
+        json.dump(all_shows, f)
+    print(f"✅ Wrote JSON to: {json_path}")
+else:
+    print("⚠️ No shows found in the given date range.")

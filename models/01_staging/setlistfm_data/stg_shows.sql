@@ -20,6 +20,7 @@ select
     artist_name,
     tour_name,
     show_date::date as event_date,
+    {{ is_weekend('show_date') }} AS is_weekend,
     trim(venue) as venue,
     trim(city) as city,
     trim(country) as country,
@@ -29,5 +30,3 @@ select
     current_timestamp() as ingestion_ts
 
 from source
-
-select * from source

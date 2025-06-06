@@ -15,3 +15,7 @@ models:
 
       - name: event_date
         description: "Date of the concert"
+
+      - name: is_weekend
+        tests:
+          - not_null

@@ -12,7 +12,7 @@ songs as (
 
 select
     s.show_id,
-    s.event_date,
+    s.show_date,
     s.artist_name,
     s.tour_name,
     s.city,

@@ -4,9 +4,10 @@ version: 2
 
 sources:
   - name: setlistfm_data
-    database: DB_FANALYZE
-    schema: fanalyze
-    description: "Source data from Setlist.fm"
+    schema: FANALYZE
     tables:
-      - name: stg_shows_raw
       - name: stg_setlists_raw
+      - name: stg_setlists_sch
+      - name: stg_shows_raw          # <-- Add this
+      - name: stg_shows_sch          # <-- And this
+

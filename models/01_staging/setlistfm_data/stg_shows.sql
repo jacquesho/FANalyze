@@ -1,21 +1,32 @@
+{{ config(materialized='view') }}
+
 -- stg_shows.sql
 -- ------------------------------------------------------------------------------
 -- Description : Staging model that cleans raw concert show data.
 --               Trims string fields and filters out invalid or incomplete rows.
--- Source      : staging_shows table from the source database.
+-- Source      : stg_shows_raw table from the source database.
 -- Purpose     : Provides a clean base for downstream transformations like
 --               flattened setlists and song statistics.
 -- ------------------------------------------------------------------------------
 
-SELECT DISTINCT
-  show_id,
-  artist_id,
-  show_date,
-  TRIM(venue) AS venue,
-  TRIM(city) AS city,
-  TRIM(country) AS country,
-  TRIM(tour_name) AS tour_name,
-  ticket_tier,
-  simulated_price_usd
-FROM {{ source('setlistfm', 'staging_shows') }}
-WHERE artist_id IS NOT NULL AND show_id IS NOT NULL
+with source as (
+    select *
+    from {{ ref('stg_shows_combined') }}
+)
+
+select
+    show_id,
+    artist_id,
+    artist_name,
+    tour_name,
+    show_date::date as event_date,
+    {{ is_weekend('show_date') }} AS is_weekend,
+    trim(venue) as venue,
+    trim(city) as city,
+    trim(country) as country,
+    ticket_tier,
+    simulated_price_usd,
+    load_type,
+    current_timestamp() as ingestion_ts
+
+from source

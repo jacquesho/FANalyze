@@ -74,5 +74,3 @@ profiles.yml
 # VSCode workspace config (optional, if personal)
 *.code-workspace
 .vscode/
-
-kafka/.env-kafka

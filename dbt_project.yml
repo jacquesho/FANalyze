@@ -1,25 +1,23 @@
 name: fanalyze
-version: 1.0.0
-config-version: 2
-
+version: "2.0"
 profile: fanalyze
 
 model-paths: ["models"]
-seed-paths: ["seeds"]
-test-paths: ["tests"]
 macro-paths: ["macros"]
-snapshot-paths: ["snapshots"]
+target-path: "target"
+clean-targets: ["target"]
 
 models:
-  "01_staging":
-    setlistfm_data:
+  fanalyze:
+    01_staging:
       +materialized: view
+      +schema_suffix: ""
 
-  "02_intermediate":
-    +materialized: ephemeral
-
-  "03_marts":
-    core:
+      setlistfm_data:
+        +materialized: view
+        +schema_suffix: ""
+        
+    02_intermediate:
       +materialized: table
-    fan_behavior:
+    03_marts:
       +materialized: table

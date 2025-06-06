@@ -1,6 +1,6 @@
 version: 2
 models:
-- name: int_flattened_setlists
+- name: int_setlists_flat
   description: Flattened and ordered list of songs per show from nested setlist JSON.
   columns:
   - name: show_id

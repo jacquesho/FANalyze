@@ -19,7 +19,10 @@ jobs:
           pip install -r requirements.txt
       
       - name: Set up dbt profile with environment variables
-        run: mkdir -p ~/.dbt && cp ./profiles.yml ~/.dbt/profiles.yml
+        run: mkdir -p /home/runner/.dbt && cp ./profiles.yml /home/runner/.dbt/profiles.yml
+
+      - name: Debug: Print contents of ~/.dbt
+        run: ls -la /home/runner/.dbt
 
       - name: Run dbt build
         run: dbt build --target prod

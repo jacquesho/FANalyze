@@ -18,8 +18,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      - name: Set up dbt profile with environment variables
-        run: mkdir -p /home/runner/.dbt && cp ./profiles.yml /home/runner/.dbt/profiles.yml
+      - name: Set up dbt profile using inline template
+        run: |
+          mkdir -p /home/runner/.dbt
+          cat <<EOF > /home/runner/.dbt/profiles.yml
+          fanalyze:
+            target: prod
+            outputs:
+              prod:
+                type: snowflake
+                account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+                warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+                database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+                role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+                schema: "{{ env_var('SNOWFLAKE_SCHEMA') }}"
+                user: "{{ env_var('SNOWFLAKE_CD_USER') }}"
+                private_key: "{{ env_var('SNOWFLAKE_CD_USER_PRIVATE_KEY') }}"
+                threads: 4
+          EOF
 
       - name: Debug - Print contents of ~/.dbt
         run: ls -la /home/runner/.dbt

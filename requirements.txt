@@ -1,4 +1,18 @@
+# dbt + Snowflake
 dbt-core==1.7.9
 dbt-snowflake==1.7.9
+
+# Airflow CLI (optional for local development or test scripts)
+apache-airflow==2.9.1
+
+# Kafka event streaming
 kafka-python==1.4.7
+
+# Snowflake connector for Python
+snowflake-connector-python==3.6.0
+snowflake-snowpark-python==1.11.0
+
+# Other common dependencies
+pandas==2.2.2
+pyyaml==6.0.1
 six==1.17.0

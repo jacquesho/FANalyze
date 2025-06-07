@@ -1,10 +1,10 @@
-name: dbt CI
+name: dbt CD
 on:
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [created]
 
 jobs:
-  dbt-test:
+  dbt-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,19 +12,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
-      - name: Install dbt
-        run: |
-          pip install sqlfluff dbt-core dbt-snowflake
-          dbt deps
       
-      - name: Check code quality
-        run: sqlfluff lint .
-
       - name: Install dbt
         run: |
           pip install -r requirements.txt
           dbt deps
       
-      - name: Run dbt tests
-        run: dbt build --target ci
+      - name: Deploy dbt models
+        run: dbt build --target prod

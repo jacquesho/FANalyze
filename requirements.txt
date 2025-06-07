@@ -1,6 +1,6 @@
 # dbt + Snowflake
-dbt-core==1.7.9
-dbt-snowflake==1.7.9
+dbt-core==1.7.8
+dbt-snowflake==1.7.8
 
 # Airflow CLI (optional for local development or test scripts)
 apache-airflow==2.9.1

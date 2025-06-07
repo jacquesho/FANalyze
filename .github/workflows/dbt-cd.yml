@@ -18,5 +18,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      - name: Deploy dbt models
+      - name: Set up dbt profile with environment variables
+        run: mkdir -p ~/.dbt && cp ./profiles.yml ~/.dbt/profiles.yml
+
+      - name: Run dbt build
         run: dbt build --target prod
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_CD_USER: ${{ secrets.SNOWFLAKE_CD_USER }}
+          SNOWFLAKE_CD_USER_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_CD_USER_PRIVATE_KEY }}

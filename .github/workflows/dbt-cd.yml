@@ -21,7 +21,7 @@ jobs:
       - name: Set up dbt profile with environment variables
         run: mkdir -p /home/runner/.dbt && cp ./profiles.yml /home/runner/.dbt/profiles.yml
 
-      - name: Debug: Print contents of ~/.dbt
+      - name: Debug - Print contents of ~/.dbt
         run: ls -la /home/runner/.dbt
 
       - name: Run dbt build

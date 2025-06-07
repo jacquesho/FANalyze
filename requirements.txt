@@ -1,2 +1,4 @@
+dbt-core==1.7.9
+dbt-snowflake==1.7.9
 kafka-python==1.4.7
 six==1.17.0

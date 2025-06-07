@@ -37,8 +37,9 @@ jobs:
                 threads: 4
           EOF
 
-      - name: Debug - Print contents of ~/.dbt
-        run: ls -la /home/runner/.dbt
+      - name: Install dbt packages
+        run: dbt deps
+
 
       - name: Run dbt build
         run: dbt build --target prod

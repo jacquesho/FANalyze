@@ -1,12 +1,19 @@
 [project]
-name = "m01w02-database-lab"
-version = "0.1.0"
-description = "Database connectivity lab for M01W02 - Docker and PostgreSQL"
+name = "FANalyze_2.0"
+version = "2.0.0"
+description = "FANalyze 2.0: end-to-end data engineering and AI analytics platform"
 requires-python = ">=3.12"
 dependencies = [
     "python-dotenv>=1.0.1",
     "psycopg[binary]~=3.2",
     "rich>=14.1.0",
+    "snowflake-connector-python>=3.10.1",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4",
 ]
 
 [tool.ruff]

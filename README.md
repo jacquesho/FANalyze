@@ -1,91 +1,330 @@
-# Data Engineering Capstone Project
+# FANalyze 2.0 🎵📊
 
-## Overview
-- **Working title**: FANalyze 2.0
-- **One-sentence summary**:
-    FANalyze is an end-to-end data engineering and AI analytics platform that integrates
-    real-time concert setlist data, historical sources, and (in progress) ticket sales to
-    uncover trends in artist performance, audience engagement, and cultural impact.
-- **Business/value objective**:
-    FANalyze delivers insights into music performance and fan demand by combining setlists,
-    historical data, and ticket sales, helping artists and promoters make smarter touring
-    and engagement decisions.
-- **Success metrics** (quantitative):
-    ⚡ Pipeline Latency: Real-time API events land in PostgreSQL and flow to Snowflake within <5 minutes
-    🗄️ Data Completeness: Transformed warehouse tables maintain ≥95% schema-conformant records across all sources
-    🔄 Data Diversity: At least 2 distinct data sources integrated (setlists + ticket sales)
-    🤖 AI Agent Accuracy: RAG chatbot correctly answers ≥90% of benchmark queries about artist performance and ticket demand
-    ✅ Test Coverage: Minimum 3 dbt tests per model layer (staging, intermediate, marts)
+> **A comprehensive data engineering and AI analytics platform for music industry insights**
 
-### Problem & Scope
-- **Problem statement and constraints**:
-    Fans and promoters lack a unified view of live music performance trends. While setlist
-    data gives a record of what bands play, it does not tie into fan demand signals like
-    ticket sales. Constraints include using publicly available APIs, managing API rate limits,
-    and working with a mix of real-time and batch data.
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.4-blue.svg)](https://postgresql.org)
+[![Snowflake](https://img.shields.io/badge/Snowflake-Data%20Warehouse-orange.svg)](https://snowflake.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- **Personas/stakeholders and primary use cases**:
-    Fans → search historical setlists and see real-time updates from ongoing shows.
-    Promoters/venues → analyze demand signals (ticket sales + attendance) to forecast interest.
-    Artists/labels → compare setlist evolution across tours and cities.
+## 🎯 Project Overview
 
-- **In/out of scope**:
-    In scope:
-        Collecting setlist data (batch), 
-        Loading and cleaning ticket sales data (real-time)
-        Integrating into a warehouse, dbt modeling, RAG chatbot with document/PDF support.
-    Out of scope:
-        Real ticket sales data (often behind a paywall, or proprietary information)
+**FANalyze 2.0** is an end-to-end data engineering and AI analytics platform that integrates concert setlist data, historical sources, and real-time ticket sales to uncover trends in artist performance, audience engagement, and cultural impact.
 
-### Data Sources
-- **Real-time source**:
-    Dataset: Synthetic ticket sales stream
-    Format: JSON events (event_id, artist, venue, tickets_sold, timestamp, revenue, price_tier, etc.)
-    Update frequency: Per second/minute events generated via Kafka producer
-    Pipeline: Ticket sales events → Kafka → PostgreSQL (staging) → Snowflake
-- **Batch source**: 
-    Dataset: Concerts and setlists (exported JSON files from setlist.fm )
-    Format: JSON (~5,000+ records: show_id, artist, venue, city, date, songs_played, etc.)
-    Update cadence: Weekly updates loaded into Snowflake via Airflow
-- **Why 2 different sources**:
-    Ticket sales data provides a real-time demand signal, while concerts and setlists deliver historical performance context. 
-    Together, they enable both operational monitoring (today’s ticket sales) and strategic insights (how setlists evolve across tours and cities).
+### 🚀 Key Features
+- **Real-time Data Pipeline**: Live ticket sales streaming with Kafka → PostgreSQL → Snowflake
+- **Batch Data Processing**: Historical setlist data with dbt transformations
+- **AI-Powered Analytics**: LangGraph chatbot with RAG for natural language queries
+- **Comprehensive Monitoring**: Full observability with performance metrics and alerts
 
-### Architecture Overview
-- **High-level diagram**: [ Link forthcoming as diagram is completed ]
-    [Ticket Sales Events → Kafka → PostgreSQL → Airflow → Snowflake]
-    [Concerts/Setlists CSVs → Airflow → Snowflake]
-    Snowflake (dbt models) → LangGraph AI Agent (RAG) + Document Store
+### 💼 Business Value
+FANalyze delivers actionable insights into music performance and fan demand by combining setlists, historical data, and ticket sales, helping artists and promoters make smarter touring and engagement decisions.
 
-- **Data flow**: 
-    1. Real-time: Ticket sales events stream into Kafka → PostgreSQL → Snowflake.
-    2. Batch: Concert/setlist CSVs ingested in bulk into Snowflake via Airflow.
-    3. Transformations: dbt builds clean staging, intermediate, and marts models.
-    4. AI Agent: LangGraph chatbot queries Snowflake + documents via RAG.
+### 📊 Success Metrics
+- ⚡ **Pipeline Latency**: Real-time events land in PostgreSQL and flow to Snowflake within <5 minutes
+- 🔄 **Data Diversity**: At least 2 distinct data sources integrated (setlists + ticket sales)
+- 🤖 **AI Agent Accuracy**: RAG chatbot correctly answers ≥90% of benchmark queries
+- ✅ **Test Coverage**: Minimum 3 dbt tests per model layer (staging, intermediate, marts)
 
-- **Technology choices**:
-    Kafka: ticket sales streaming ingestion.
-    PostgreSQL: local OLTP staging DB for real-time loads.
-    Snowflake: OLAP warehouse for unified analytics.
-    dbt: modeling, testing, documentation.
-    Airflow: orchestrates batch + real-time jobs.
-    LangGraph + OpenAI/Claude: chatbot with conversation memory and RAG.
-    GitHub Actions: CI/CD automation and testing.
+## 🎭 Problem & Scope
 
-## Project Structure
-project/
-├── .env                          # Configuration file
-├── .gitignore                    # Git ignore file
-├── main.py                       # Main pipeline script
-├── scripts/
-│   └── data_collection/         # Data collection scripts
-├── data/
-│   └── external/                 # Raw data files
-└── pyproject.toml               # UV project configuration
-## Setup
-1. Install dependencies: `uv sync`
-2. Configure environment: Copy `env_example.txt` to `.env`
-3. Run pipeline: `uv run python main.py`
+### Problem Statement
+Fans and promoters lack a unified view of live music performance trends. While setlist data provides a record of what bands play, it doesn't connect to fan demand signals like ticket sales, creating a fragmented understanding of the music industry.
 
-## Data Sources
-- 
+### Key Constraints
+- Using publicly available APIs with rate limits
+- Working with synthetic data (real ticket sales data is proprietary)
+- Managing data quality across multiple sources
+- Ensuring real-time processing capabilities
+
+### 👥 Target Users
+- **🎵 Fans**: Search historical setlists and see real-time updates from ongoing shows
+- **🏟️ Promoters/Venues**: Analyze demand signals (ticket sales + attendance) to forecast interest
+- **🎤 Artists/Labels**: Compare setlist evolution across tours and cities
+
+### 📋 Scope Definition
+**✅ In Scope:**
+- Collecting setlist data (batch processing)
+- Loading and cleaning ticket sales data (real-time)
+- Data warehouse integration with dbt modeling
+- RAG chatbot with document/PDF support
+- Performance monitoring and alerting
+
+**❌ Out of Scope:**
+- Real ticket sales data (proprietary/paywall protected)
+- Social media sentiment analysis
+- Financial transaction processing
+
+## 📊 Data Sources
+
+### 🔴 Real-time Source: Synthetic Ticket Sales
+- **Dataset**: Synthetic ticket sales stream
+- **Format**: JSON events with fields: `event_id`, `artist`, `venue`, `tickets_sold`, `timestamp`, `revenue`, `price_tier`
+- **Update Frequency**: Per second/minute events generated via Kafka producer
+- **Pipeline**: Ticket sales events → Kafka → PostgreSQL (staging) → Snowflake
+- **Volume**: 100+ events per minute during peak hours
+
+### 🔵 Batch Source: Concert Setlists
+- **Dataset**: Concerts and setlists from setlist.fm
+- **Format**: JSON files (~5,000+ records per artist)
+- **Fields**: `show_id`, `artist`, `venue`, `city`, `date`, `songs_played`, `tour_name`
+- **Update Cadence**: Weekly bulk loads into Snowflake via Airflow
+- **Volume**: 500+ records per batch load
+
+### 🔄 Why Two Different Sources?
+Ticket sales data provides **real-time demand signals**, while setlists deliver **historical performance context**. Together, they enable:
+- **Operational Monitoring**: Today's ticket sales and demand patterns
+- **Strategic Insights**: How setlists evolve across tours and cities
+- **Predictive Analytics**: Forecasting demand based on historical patterns
+
+## 🏗️ Architecture Overview
+
+### System Architecture
+```
+┌─────────────────┐    ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Real-time     │    │    Kafka     │     │ PostgreSQL  │     │  Snowflake  │
+│ Ticket Sales    │───▶│   Streaming  │───▶│  Staging    │───▶│  Warehouse  │
+│   (Synthetic)   │    │              │     │             │     │             │
+└─────────────────┘    └──────────────┘     └─────────────┘     └─────────────┘
+                                                      ▲
+┌─────────────────┐     ┌──────────────┐              │
+│   Batch Data    │     │   Airflow    │──────────────┘
+│   (Setlists)    │───▶│ Orchestrator │
+└─────────────────┘     └──────────────┘
+                                │
+                                ▼
+┌─────────────────┐     ┌─────────────--─┐    ┌─────────────┐
+│   AI Agent      │◀───│    dbt         │◀───│  Snowflake  │
+│  (LangGraph)    │     │ Transformations│    │  Warehouse  │
+└─────────────────┘     └─────────────--─┘    └─────────────┘
+```
+
+### 🔄 Data Flow
+1. **Real-time Pipeline**: Ticket sales events → Kafka → PostgreSQL → Snowflake
+2. **Batch Pipeline**: Concert/setlist data → Airflow → Snowflake
+3. **Data Transformation**: dbt builds staging, intermediate, and marts models
+4. **AI Integration**: LangGraph chatbot queries Snowflake + documents via RAG
+
+### 🛠️ Technology Stack
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Streaming** | Kafka | Real-time ticket sales ingestion |
+| **Staging DB** | PostgreSQL | Local OLTP for real-time loads |
+| **Warehouse** | Snowflake | OLAP analytics and storage |
+| **Transformations** | dbt | Data modeling, testing, documentation |
+| **Orchestration** | Airflow | Batch and real-time job coordination |
+| **AI Agent** | LangGraph + OpenAI/Claude | Conversational AI with RAG |
+| **CI/CD** | GitHub Actions | Automation and testing |
+
+## 📁 Project Structure
+```
+FANalyze_v2.0/
+├── 📄 README.md                    # Project documentation
+├── 📄 pyproject.toml              # UV project configuration
+├── 📄 docker-compose.yaml         # Docker services configuration
+├── 📄 .env.example                # Environment variables template
+├── 📄 .gitignore                  # Git ignore patterns
+├── 📁 config/                     # Configuration files
+│   └── 📄 settings.py             # Application settings
+├── 📁 docs/                       # Documentation
+│   └── 📄 execution_plan.md       # Detailed implementation plan
+├── 📁 scripts/                    # Data processing scripts
+│   ├── 📁 data_collection/        # Data ingestion scripts
+│   ├── 📁 database/              # Database operations
+│   ├── 📁 monitoring/             # Performance monitoring
+│   └── 📁 validation/             # Data quality checks
+├── 📁 data/                       # Data storage
+│   └── 📁 external/              # Raw data files
+├── 📁 sql/                        # SQL scripts
+│   └── 📄 init.sql               # Database initialization
+├── 📁 tests/                      # Test suite
+│   ├── 📄 test_connections.py    # Database connection tests
+│   └── 📄 test_data_pipeline.py  # Pipeline validation tests
+└── 📄 main.py                     # Main pipeline orchestrator
+```
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.12+
+- Docker & Docker Compose
+- UV package manager
+- Snowflake account (for data warehouse)
+
+### 1. 📦 Install Dependencies
+```bash
+# Install UV if not already installed
+pip install uv
+
+# Install project dependencies
+uv sync
+```
+
+### 2. ⚙️ Configure Environment
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your actual values:
+# - PostgreSQL credentials (for local staging)
+# - Snowflake credentials (for data warehouse)
+# - API keys (for data collection)
+```
+
+### 3. 🗄️ Initialize Databases
+```bash
+# Start PostgreSQL via Docker
+docker-compose up -d postgres
+
+# Initialize database schema
+psql -h localhost -U postgres -f sql/init.sql
+```
+
+### 4. 🔄 Run Pipelines
+
+#### Real-time Pipeline (Synthetic ticket sales → PostgreSQL)
+```bash
+uv run python main.py --pipeline realtime
+```
+
+#### Batch Pipeline (Setlist data → Snowflake)
+```bash
+uv run python main.py --pipeline batch
+```
+
+#### Run Both Pipelines
+```bash
+uv run python main.py --pipeline all
+```
+
+### 5. ✅ Verify Data
+```bash
+# Test database connections
+uv run pytest tests/test_connections.py -v
+
+# Test data pipeline
+uv run pytest tests/test_data_pipeline.py -v
+```
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
+# Run complete test suite
+uv run pytest tests/ -v
+
+# Run with coverage
+uv run pytest tests/ --cov=scripts --cov-report=html
+```
+
+### Individual Test Categories
+```bash
+# Test database connections
+uv run pytest tests/test_connections.py -v
+
+# Test data pipeline
+uv run pytest tests/test_data_pipeline.py -v
+
+# Test data quality
+uv run pytest tests/test_data_quality.py -v
+```
+
+## 📊 Monitoring & Observability
+
+### Performance Monitoring
+```bash
+# Monitor pipeline performance
+uv run python scripts/monitoring/performance_monitor.py --pipeline realtime
+uv run python scripts/monitoring/performance_monitor.py --pipeline batch
+
+# Generate performance report
+uv run python scripts/monitoring/generate_report.py --output reports/performance_report.html
+```
+
+### Data Quality Checks
+```bash
+# Validate JSON structure
+uv run python scripts/validation/validate_json.py --input data/external/ticket_sales_events.json
+
+# Check data completeness
+uv run python scripts/validation/data_completeness.py --source postgres --table staging.raw_data
+uv run python scripts/validation/data_completeness.py --source snowflake --table STAGING.SETLISTS_RAW
+```
+
+## 🛠️ Development
+
+### Code Quality
+```bash
+# Run linting
+uv run ruff check scripts/
+
+# Format code
+uv run ruff format scripts/
+
+# Type checking
+uv run mypy scripts/
+```
+
+### Database Management
+```bash
+# Connect to PostgreSQL
+psql -h localhost -U postgres -d postgres
+
+# Connect to Snowflake
+uv run python -c "
+import snowflake.connector
+conn = snowflake.connector.connect(
+    user=os.getenv('SNOWFLAKE_USER'),
+    account=os.getenv('SNOWFLAKE_ACCOUNT'),
+    private_key_file_path=os.getenv('SNOWFLAKE_PRIVATE_KEY_PATH'),
+    warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+    database=os.getenv('SNOWFLAKE_DATABASE'),
+    schema=os.getenv('SNOWFLAKE_SCHEMA')
+)
+"
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+1. **PostgreSQL Connection**: Check Docker is running, credentials in .env
+2. **Snowflake Connection**: Verify private key path and permissions
+3. **Data Format**: Ensure JSON is valid, check file encoding
+4. **Environment**: Run `uv run python -c "import os; print(os.getenv('POSTGRES_HOST'))"` to verify env loading
+
+### Debug Commands
+```bash
+# Test connections
+uv run pytest tests/test_connections.py -v
+
+# Check environment
+uv run python -c "from dotenv import load_dotenv; load_dotenv(); import os; print([k for k in os.environ if 'POSTGRES' in k or 'SNOWFLAKE' in k])"
+
+# Verify data files
+ls -la data/external/
+file data/external/*.json
+```
+
+## 📚 Documentation
+
+- [Execution Plan](docs/execution_plan.md) - Detailed implementation roadmap
+- [API Documentation](docs/api.md) - API endpoints and usage
+- [Data Model](docs/data_model.md) - Database schema and relationships
+- [Deployment Guide](docs/deployment.md) - Production deployment instructions
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [setlist.fm](https://www.setlist.fm/) for providing setlist data
+- [Foundry AI Academy](https://foundry-ai-academy.com/) for the educational framework
+- The open-source community for the amazing tools and libraries

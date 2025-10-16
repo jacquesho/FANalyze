@@ -21,12 +21,30 @@ console = Console()
 def get_admin_connection():
     """Get PostgreSQL connection using your existing admin credentials."""
     try:
+        host = os.getenv("POSTGRES_HOST")
+        port = os.getenv("POSTGRES_PORT")
+        dbname = os.getenv("POSTGRES_DB")
+        user = os.getenv("POSTGRES_USER")
+        password = os.getenv("POSTGRES_PASSWORD")
+
+        missing = [name for name, val in [
+            ("POSTGRES_HOST", host),
+            ("POSTGRES_PORT", port),
+            ("POSTGRES_DB", dbname),
+            ("POSTGRES_USER", user),
+            ("POSTGRES_PASSWORD", password),
+        ] if not val]
+
+        if missing:
+            console.print("❌ Missing required environment variables: " + ", ".join(missing), style="red")
+            return None
+
         conn = psycopg.connect(
-            host=os.getenv("POSTGRES_HOST", "localhost"),
-            port=os.getenv("POSTGRES_PORT", "5432"),
-            dbname=os.getenv("POSTGRES_DB", "postgres"),
-            user=os.getenv("POSTGRES_USER", "postgres"),
-            password=os.getenv("POSTGRES_PASSWORD", "postgres"),
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            password=password,
         )
         return conn
     except Exception as e:

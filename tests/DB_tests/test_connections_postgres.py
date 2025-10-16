@@ -1,13 +1,12 @@
 import os
-
+from pathlib import Path
 from dotenv import load_dotenv
 
 
 def _load_env() -> None:
-    # Load .env from project root (FANalyze_v2.0/.env)
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    dotenv_path = os.path.join(root_dir, ".env")
-    load_dotenv(dotenv_path=dotenv_path, override=False)
+    # Load .env explicitly from project root (FANalyze_v2.0/.env), regardless of CWD
+    project_root = Path(__file__).resolve().parents[2]
+    load_dotenv(dotenv_path=project_root / ".env", override=False)
 
 
 def test_postgres_connection() -> None:

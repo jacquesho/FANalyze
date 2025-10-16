@@ -80,14 +80,14 @@ def run_csv_ingestion_pipeline():
     console.print("✅ Database initialized", style="green")
     
     # Step 2: Load CSV data
-    console.print("\n2️⃣ Loading CSV Data", style="blue")
+    console.print("\n2️⃣ Loading Data (CSV or JSONL)", style="blue")
     
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Loading CSV data...", total=None)
+            task = progress.add_task("Loading data...", total=None)
         
         if not load_csv():
             console.print("❌ CSV loading failed", style="red")

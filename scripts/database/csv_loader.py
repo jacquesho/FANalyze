@@ -7,6 +7,7 @@ Loads CSV data into PostgreSQL staging.test_ingest table
 import os
 import sys
 from pathlib import Path
+import json
 import pandas as pd
 import psycopg
 from dotenv import load_dotenv
@@ -23,12 +24,30 @@ console = Console()
 def get_postgres_connection():
     """Get PostgreSQL connection for data loading."""
     try:
+        host = os.getenv("POSTGRES_HOST")
+        port = os.getenv("POSTGRES_PORT")
+        dbname = os.getenv("POSTGRES_DB")
+        user = os.getenv("POSTGRES_USER_INGEST")
+        password = os.getenv("POSTGRES_PASSWORD_INGEST")
+
+        missing = [name for name, val in [
+            ("POSTGRES_HOST", host),
+            ("POSTGRES_PORT", port),
+            ("POSTGRES_DB", dbname),
+            ("POSTGRES_USER_INGEST", user),
+            ("POSTGRES_PASSWORD_INGEST", password),
+        ] if not val]
+
+        if missing:
+            console.print("❌ Missing required environment variables: " + ", ".join(missing), style="red")
+            return None
+
         conn = psycopg.connect(
-            host=os.getenv("POSTGRES_HOST", "localhost"),
-            port=os.getenv("POSTGRES_PORT", "5432"),
-            dbname=os.getenv("POSTGRES_DB", "postgres"),
-            user=os.getenv("POSTGRES_USER", "user_fanalyze_ingest"),
-            password=os.getenv("POSTGRES_PASSWORD", "fanalyze_ingest_password"),
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            password=password,
         )
         return conn
     except Exception as e:
@@ -154,14 +173,70 @@ def verify_data_loaded(table_name="staging.test_ingest"):
         return False
 
 
+def load_jsonl_to_postgres(jsonl_file_path, table_name="staging.test_ingest"):
+    """
+    Load JSONL data into PostgreSQL staging table.
+    Each line should represent a TicketSaleRecord dict with keys id, data_content, file_name.
+    If a line only contains the payload, we will wrap it into the schema.
+    """
+    try:
+        console.print(f"📁 Reading JSONL file: {jsonl_file_path}", style="blue")
+
+        conn = get_postgres_connection()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        insert_sql = f"""
+        INSERT INTO {table_name} (id, data_content, file_name, loaded_at)
+        VALUES (%s, %s, %s, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+            data_content = EXCLUDED.data_content,
+            file_name = EXCLUDED.file_name,
+            loaded_at = NOW()
+        """
+
+        total = 0
+        with open(jsonl_file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                obj = json.loads(line)
+                # Accept both {id,data_content,file_name} and raw payload forms
+                if all(k in obj for k in ("id", "data_content", "file_name")):
+                    row = (int(obj["id"]), str(obj["data_content"]), str(obj["file_name"]))
+                else:
+                    # Wrap raw payload
+                    total += 1
+                    row = (total, json.dumps(obj, separators=(",", ":")), Path(jsonl_file_path).name)
+                cursor.execute(insert_sql, row)
+                total += 1
+                console.print(f"⬆️ inserted row {total}", style="cyan")
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        console.print(f"✅ Successfully loaded {total} JSONL records to {table_name}", style="green")
+        return True
+    except Exception as e:
+        console.print(f"❌ JSONL loading failed: {e}", style="red")
+        return False
+
+
 def main():
-    """Main function to load CSV data into PostgreSQL."""
+    """Main function to load CSV or JSONL data into PostgreSQL."""
     console.print("🚀 FANalyze 2.0 - CSV Data Loader", style="bold blue")
     console.print("=" * 50)
     
     # Get CSV file path (use absolute path to avoid working directory issues)
-    script_dir = Path(__file__).parent.parent.parent
-    csv_file_path = script_dir / "tests" / "DB_tests" / "sample_data.csv"
+    # Allow override via environment variable CSV_FILE_PATH
+    override_path = os.getenv("CSV_FILE_PATH")
+    if override_path:
+        csv_file_path = Path(override_path)
+    else:
+        script_dir = Path(__file__).parent.parent.parent
+        csv_file_path = script_dir / "tests" / "DB_tests" / "sample_data.csv"
     
     console.print(f"🔍 Looking for CSV file at: {csv_file_path}", style="cyan")
     console.print(f"🔍 Current working directory: {os.getcwd()}", style="cyan")
@@ -171,10 +246,16 @@ def main():
         return False
     
     # Load CSV data
-    console.print(f"\n1️⃣ Loading CSV data from {csv_file_path}", style="blue")
-    if not load_csv_to_postgres(csv_file_path):
-        console.print("❌ CSV loading failed", style="red")
-        return False
+    console.print(f"\n1️⃣ Loading data from {csv_file_path}", style="blue")
+    ext = csv_file_path.suffix.lower()
+    if ext == ".jsonl":
+        if not load_jsonl_to_postgres(csv_file_path):
+            console.print("❌ JSONL loading failed", style="red")
+            return False
+    else:
+        if not load_csv_to_postgres(csv_file_path):
+            console.print("❌ CSV loading failed", style="red")
+            return False
     
     # Verify data
     console.print(f"\n2️⃣ Verifying data in staging.test_ingest", style="blue")

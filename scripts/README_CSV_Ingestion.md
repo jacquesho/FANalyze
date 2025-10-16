@@ -6,9 +6,11 @@ This directory contains scripts for ingesting CSV data into PostgreSQL staging t
 
 ### Core Scripts
 - **`main_csv_ingestion.py`** - Main orchestration script for the complete pipeline
-- **`test_csv_ingestion.py`** - Comprehensive test script for the ingestion pipeline
 - **`database/csv_loader.py`** - CSV data loader for PostgreSQL
 - **`validation/data_validation.py`** - Data validation and quality checks
+
+### Tests
+- **`tests/DB_tests/test_csv_ingestion.py`** - Comprehensive test script for the ingestion pipeline
 
 ### Database Setup
 - **`sql/init_test_ingest.sql`** - SQL script to create staging.test_ingest table
@@ -29,7 +31,7 @@ uv run python scripts/main_csv_ingestion.py
 ### 3. Run Tests Only
 ```bash
 # Run comprehensive tests
-uv run python scripts/test_csv_ingestion.py
+uv run python tests/DB_tests/test_csv_ingestion.py
 ```
 
 ### 4. Individual Components
@@ -100,7 +102,7 @@ CREATE TABLE staging.test_ingest (
 
 ### Run All Tests
 ```bash
-uv run python scripts/test_csv_ingestion.py
+uv run python tests/DB_tests/test_csv_ingestion.py
 ```
 
 ### Individual Test Components

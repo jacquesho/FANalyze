@@ -1,0 +1,90 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw data sources for events and ticket sales"
+    tables:
+      - name: shows_his
+        description: "Historical shows data with ticket sales information"
+        columns:
+          - name: artist_id
+            description: "Unique identifier for the artist"
+            tests:
+              - not_null
+              - unique
+          - name: artist_name
+            description: "Name of the artist"
+            tests:
+              - not_null
+          - name: show_id
+            description: "Unique identifier for the show"
+            tests:
+              - not_null
+              - unique
+          - name: show_date
+            description: "Date of the show"
+            tests:
+              - not_null
+          - name: venue_name
+            description: "Name of the venue"
+            tests:
+              - not_null
+          - name: venue_id
+            description: "Unique identifier for the venue"
+            tests:
+              - not_null
+          - name: city_name
+            description: "City where the show took place"
+            tests:
+              - not_null
+          - name: state_code
+            description: "State code where the show took place"
+          - name: country_name
+            description: "Country where the show took place"
+            tests:
+              - not_null
+          - name: tickets_sold
+            description: "Number of tickets sold"
+          - name: sellout_status
+            description: "Whether the show sold out"
+          - name: attendance_rate
+            description: "Percentage of venue capacity filled"
+          - name: average_ticket_price
+            description: "Average price per ticket"
+          - name: revenue
+            description: "Total revenue from ticket sales"
+
+      - name: shows_future
+        description: "Upcoming concerts data"
+        columns:
+          - name: artist_name
+            description: "Name of the artist"
+            tests:
+              - not_null
+          - name: show_date
+            description: "Date of the upcoming show"
+            tests:
+              - not_null
+          - name: venue_name
+            description: "Name of the venue"
+            tests:
+              - not_null
+          - name: city_name
+            description: "City where the show will take place"
+            tests:
+              - not_null
+          - name: state_code
+            description: "State code where the show will take place"
+          - name: country_name
+            description: "Country where the show will take place"
+            tests:
+              - not_null
+          - name: show_id
+            description: "Unique identifier for the show"
+            tests:
+              - not_null
+              - unique
+          - name: venue_id
+            description: "Unique identifier for the venue"
+            tests:
+              - not_null

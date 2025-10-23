@@ -1,0 +1,61 @@
+artist_name,show_date,venue_name,city_name,state_code,country_name,source,collected_at,show_date_parsed,show_id,venue_id
+BLACKPINK,2025-07-12,SoFi Stadium,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2025-07-12,real_blackpink_20250712,real_sofi_stadium
+BLACKPINK,2025-07-13,SoFi Stadium,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2025-07-13,real_blackpink_20250713,real_sofi_stadium
+BLACKPINK,2025-07-18,Soldier Field,Chicago,IL,United States,official,2025-10-23T17:13:14.880862,2025-07-18,real_blackpink_20250718,real_soldier_field
+BLACKPINK,2025-07-26,Citi Field,New York,NY,United States,official,2025-10-23T17:13:14.880862,2025-07-26,real_blackpink_20250726,real_citi_field
+BLACKPINK,2025-07-27,Citi Field,New York,NY,United States,official,2025-10-23T17:13:14.880862,2025-07-27,real_blackpink_20250727,real_citi_field
+Coldplay,2025-09-12,MetLife Stadium,East Rutherford,NJ,United States,official,2025-10-23T17:13:14.880862,2025-09-12,real_coldplay_20250912,real_metlife_stadium
+Metallica,2025-11-15,Madison Square Garden,New York,NY,United States,official,2025-10-23T17:13:14.880862,2025-11-15,real_metallica_20251115,real_madison_square_garden
+Metallica,2025-11-16,Madison Square Garden,New York,NY,United States,official,2025-10-23T17:13:14.880862,2025-11-16,real_metallica_20251116,real_madison_square_garden
+Metallica,2025-11-22,TD Garden,Boston,MA,United States,official,2025-10-23T17:13:14.880862,2025-11-22,real_metallica_20251122,real_td_garden
+Metallica,2025-11-23,TD Garden,Boston,MA,United States,official,2025-10-23T17:13:14.880862,2025-11-23,real_metallica_20251123,real_td_garden
+Metallica,2025-12-06,Crypto.com Arena,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2025-12-06,real_metallica_20251206,real_crypto.com_arena
+Metallica,2025-12-07,Crypto.com Arena,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2025-12-07,real_metallica_20251207,real_crypto.com_arena
+Metallica,2025-12-13,United Center,Chicago,IL,United States,official,2025-10-23T17:13:14.880862,2025-12-13,real_metallica_20251213,real_united_center
+Metallica,2025-12-14,United Center,Chicago,IL,United States,official,2025-10-23T17:13:14.880862,2025-12-14,real_metallica_20251214,real_united_center
+Metallica,2026-01-10,American Airlines Center,Dallas,TX,United States,official,2025-10-23T17:13:14.880862,2026-01-10,real_metallica_20260110,real_american_airlines_center
+Metallica,2026-01-11,American Airlines Center,Dallas,TX,United States,official,2025-10-23T17:13:14.880862,2026-01-11,real_metallica_20260111,real_american_airlines_center
+Metallica,2026-01-17,Toyota Center,Houston,TX,United States,official,2025-10-23T17:13:14.880862,2026-01-17,real_metallica_20260117,real_toyota_center
+Metallica,2026-01-18,Toyota Center,Houston,TX,United States,official,2025-10-23T17:13:14.880862,2026-01-18,real_metallica_20260118,real_toyota_center
+Metallica,2026-01-24,Amway Center,Orlando,FL,United States,official,2025-10-23T17:13:14.880862,2026-01-24,real_metallica_20260124,real_amway_center
+Metallica,2026-01-25,Amway Center,Orlando,FL,United States,official,2025-10-23T17:13:14.880862,2026-01-25,real_metallica_20260125,real_amway_center
+Metallica,2026-01-31,State Farm Arena,Atlanta,GA,United States,official,2025-10-23T17:13:14.880862,2026-01-31,real_metallica_20260131,real_state_farm_arena
+Metallica,2026-02-01,State Farm Arena,Atlanta,GA,United States,official,2025-10-23T17:13:14.880862,2026-02-01,real_metallica_20260201,real_state_farm_arena
+Metallica,2026-02-07,Capital One Arena,Washington,DC,United States,official,2025-10-23T17:13:14.880862,2026-02-07,real_metallica_20260207,real_capital_one_arena
+Metallica,2026-02-08,Capital One Arena,Washington,DC,United States,official,2025-10-23T17:13:14.880862,2026-02-08,real_metallica_20260208,real_capital_one_arena
+Metallica,2026-02-14,Wells Fargo Center,Philadelphia,PA,United States,official,2025-10-23T17:13:14.880862,2026-02-14,real_metallica_20260214,real_wells_fargo_center
+Metallica,2026-02-15,Wells Fargo Center,Philadelphia,PA,United States,official,2025-10-23T17:13:14.880862,2026-02-15,real_metallica_20260215,real_wells_fargo_center
+Metallica,2026-02-21,Little Caesars Arena,Detroit,MI,United States,official,2025-10-23T17:13:14.880862,2026-02-21,real_metallica_20260221,real_little_caesars_arena
+Metallica,2026-02-22,Little Caesars Arena,Detroit,MI,United States,official,2025-10-23T17:13:14.880862,2026-02-22,real_metallica_20260222,real_little_caesars_arena
+Metallica,2026-03-21,Climate Pledge Arena,Seattle,WA,United States,official,2025-10-23T17:13:14.880862,2026-03-21,real_metallica_20260321,real_climate_pledge_arena
+Metallica,2026-03-22,Climate Pledge Arena,Seattle,WA,United States,official,2025-10-23T17:13:14.880862,2026-03-22,real_metallica_20260322,real_climate_pledge_arena
+Metallica,2026-03-28,Moda Center,Portland,OR,United States,official,2025-10-23T17:13:14.880862,2026-03-28,real_metallica_20260328,real_moda_center
+Metallica,2026-03-29,Moda Center,Portland,OR,United States,official,2025-10-23T17:13:14.880862,2026-03-29,real_metallica_20260329,real_moda_center
+Metallica,2026-04-04,Chase Center,San Francisco,CA,United States,official,2025-10-23T17:13:14.880862,2026-04-04,real_metallica_20260404,real_chase_center
+Metallica,2026-04-05,Chase Center,San Francisco,CA,United States,official,2025-10-23T17:13:14.880862,2026-04-05,real_metallica_20260405,real_chase_center
+Metallica,2026-04-11,Crypto.com Arena,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2026-04-11,real_metallica_20260411,real_crypto.com_arena
+Metallica,2026-04-12,Crypto.com Arena,Los Angeles,CA,United States,official,2025-10-23T17:13:14.880862,2026-04-12,real_metallica_20260412,real_crypto.com_arena
+Metallica,2026-04-18,T-Mobile Arena,Las Vegas,NV,United States,official,2025-10-23T17:13:14.880862,2026-04-18,real_metallica_20260418,real_t-mobile_arena
+Metallica,2026-04-19,T-Mobile Arena,Las Vegas,NV,United States,official,2025-10-23T17:13:14.880862,2026-04-19,real_metallica_20260419,real_t-mobile_arena
+Metallica,2026-04-25,Footprint Center,Phoenix,AZ,United States,official,2025-10-23T17:13:14.880862,2026-04-25,real_metallica_20260425,real_footprint_center
+Metallica,2026-04-26,Footprint Center,Phoenix,AZ,United States,official,2025-10-23T17:13:14.880862,2026-04-26,real_metallica_20260426,real_footprint_center
+Metallica,2026-05-02,Ball Arena,Denver,CO,United States,official,2025-10-23T17:13:14.880862,2026-05-02,real_metallica_20260502,real_ball_arena
+Metallica,2026-05-03,Ball Arena,Denver,CO,United States,official,2025-10-23T17:13:14.880862,2026-05-03,real_metallica_20260503,real_ball_arena
+Metallica,2026-05-09,Target Center,Minneapolis,MN,United States,official,2025-10-23T17:13:14.880862,2026-05-09,real_metallica_20260509,real_target_center
+Metallica,2026-05-10,Target Center,Minneapolis,MN,United States,official,2025-10-23T17:13:14.880862,2026-05-10,real_metallica_20260510,real_target_center
+Metallica,2026-05-16,Fiserv Forum,Milwaukee,WI,United States,official,2025-10-23T17:13:14.880862,2026-05-16,real_metallica_20260516,real_fiserv_forum
+Metallica,2026-05-17,Fiserv Forum,Milwaukee,WI,United States,official,2025-10-23T17:13:14.880862,2026-05-17,real_metallica_20260517,real_fiserv_forum
+Metallica,2026-05-23,Bridgestone Arena,Nashville,TN,United States,official,2025-10-23T17:13:14.880862,2026-05-23,real_metallica_20260523,real_bridgestone_arena
+Metallica,2026-05-24,Bridgestone Arena,Nashville,TN,United States,official,2025-10-23T17:13:14.880862,2026-05-24,real_metallica_20260524,real_bridgestone_arena
+Metallica,2026-05-30,FedExForum,Memphis,TN,United States,official,2025-10-23T17:13:14.880862,2026-05-30,real_metallica_20260530,real_fedexforum
+Metallica,2026-05-31,FedExForum,Memphis,TN,United States,official,2025-10-23T17:13:14.880862,2026-05-31,real_metallica_20260531,real_fedexforum
+Metallica,2026-06-06,Smoothie King Center,New Orleans,LA,United States,official,2025-10-23T17:13:14.880862,2026-06-06,real_metallica_20260606,real_smoothie_king_center
+Metallica,2026-06-07,Smoothie King Center,New Orleans,LA,United States,official,2025-10-23T17:13:14.880862,2026-06-07,real_metallica_20260607,real_smoothie_king_center
+Metallica,2026-06-13,Amalie Arena,Tampa,FL,United States,official,2025-10-23T17:13:14.880862,2026-06-13,real_metallica_20260613,real_amalie_arena
+Metallica,2026-06-14,Amalie Arena,Tampa,FL,United States,official,2025-10-23T17:13:14.880862,2026-06-14,real_metallica_20260614,real_amalie_arena
+Metallica,2026-06-20,Hard Rock Stadium,Miami,FL,United States,official,2025-10-23T17:13:14.880862,2026-06-20,real_metallica_20260620,real_hard_rock_stadium
+Metallica,2026-06-21,Hard Rock Stadium,Miami,FL,United States,official,2025-10-23T17:13:14.880862,2026-06-21,real_metallica_20260621,real_hard_rock_stadium
+Metallica,2026-06-27,Bank of America Stadium,Charlotte,NC,United States,official,2025-10-23T17:13:14.880862,2026-06-27,real_metallica_20260627,real_bank_of_america_stadium
+Metallica,2026-06-28,Bank of America Stadium,Charlotte,NC,United States,official,2025-10-23T17:13:14.880862,2026-06-28,real_metallica_20260628,real_bank_of_america_stadium
+Metallica,2026-07-04,Mercedes-Benz Stadium,Atlanta,GA,United States,official,2025-10-23T17:13:14.880862,2026-07-04,real_metallica_20260704,real_mercedes-benz_stadium
+Metallica,2026-07-05,Mercedes-Benz Stadium,Atlanta,GA,United States,official,2025-10-23T17:13:14.880862,2026-07-05,real_metallica_20260705,real_mercedes-benz_stadium

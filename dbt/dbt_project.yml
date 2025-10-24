@@ -3,7 +3,7 @@ version: '1.0.0'
 config-version: 2
 
 # This setting configures which "profile" dbt uses for this project.
-profile: 'fan'
+profile: 'fanalyze_v2'
 
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
@@ -17,7 +17,6 @@ snapshot-paths: ["snapshots"]
 
 clean-targets:
   - "target"
-  - "dbt_packages"
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/reference/model-configs
@@ -25,9 +24,12 @@ models:
   fan:
     # Config indicated by + and applies to all files under models/example/
     +materialized: table
-    staging:
+    "01_staging":
       +materialized: view
-    intermediate:
+      +schema: "staging"
+    "02_intermediate":
       +materialized: table
-    marts:
+      +schema: "intermediate"
+    "03_marts":
       +materialized: table
+      +schema: "marts"

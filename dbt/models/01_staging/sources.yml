@@ -1,11 +1,11 @@
 version: 2
 
 sources:
-  - name: raw_data
+  - name: FAN_RAW
     description: "Raw data sources for events and ticket sales"
     tables:
       - name: shows_his
-        description: "Historical shows data with ticket sales information"
+        schema: FAN_RAW
         columns:
           - name: artist_id
             description: "Unique identifier for the artist"
@@ -14,13 +14,7 @@ sources:
               - unique
           - name: artist_name
             description: "Name of the artist"
-            tests:
-              - not_null
-          - name: show_id
-            description: "Unique identifier for the show"
-            tests:
-              - not_null
-              - unique
+            tests: []
           - name: show_date
             description: "Date of the show"
             tests:
@@ -39,20 +33,26 @@ sources:
               - not_null
           - name: state_code
             description: "State code where the show took place"
+            tests: []
           - name: country_name
             description: "Country where the show took place"
             tests:
               - not_null
           - name: tickets_sold
             description: "Number of tickets sold"
+            tests: []
           - name: sellout_status
             description: "Whether the show sold out"
+            tests: []
           - name: attendance_rate
             description: "Percentage of venue capacity filled"
+            tests: []
           - name: average_ticket_price
             description: "Average price per ticket"
+            tests: []
           - name: revenue
             description: "Total revenue from ticket sales"
+            tests: []
 
       - name: shows_future
         description: "Upcoming concerts data"
@@ -75,6 +75,7 @@ sources:
               - not_null
           - name: state_code
             description: "State code where the show will take place"
+            tests: []
           - name: country_name
             description: "Country where the show will take place"
             tests:

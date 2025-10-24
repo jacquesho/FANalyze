@@ -47,8 +47,7 @@ def create_table_if_not_exists(conn, table_name, df):
     
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS {table_name} (
-        {', '.join(columns)},
-        INGESTED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+        {', '.join(columns)}
     )
     """
     
@@ -89,16 +88,92 @@ def ingest_csv_to_snowflake(csv_file_path, table_name, schema='FAN_RAW'):
         # Add ingested_at timestamp
         df['INGESTED_AT'] = datetime.now()
         
-        # Write data to Snowflake
+        # Write data to Snowflake using simple INSERT statements
         logger.info(f"Writing {len(df)} rows to {full_table_name}")
-        success, nchunks, nrows, _ = write_pandas(
-            conn, 
-            df, 
-            table_name=table_name,
-            schema=schema,
-            auto_create_table=False,
-            overwrite=True  # Replace existing data
-        )
+        
+        cursor = conn.cursor()
+        
+        # Clear existing data
+        cursor.execute(f"DELETE FROM {full_table_name}")
+        
+        # Map CSV columns to table columns
+        if table_name == 'SHOWS_HIS':
+            # Historical shows mapping
+            column_mapping = {
+                'ARTIST_ID': 'ARTIST_ID',
+                'ARTIST_NAME': 'ARTIST_NAME', 
+                'SHOW_ID': 'SHOW_ID',
+                'SHOW_DATE': 'SHOW_DATE',
+                'SOURCE': 'SOURCE',
+                'VENUE_NAME': 'VENUE_NAME',
+                'VENUE_ID': 'VENUE_ID',
+                'VENUE_TYPE': 'VENUE_TYPE',
+                'VENUE_CAPACITY': 'VENUE_CAPACITY',
+                'CITY_NAME': 'CITY_NAME',
+                'STATE_CODE': 'STATE_CODE',
+                'COUNTRY_NAME': 'COUNTRY_NAME',
+                'MARKET_SIZE': 'MARKET_SIZE',
+                'ARTIST_TIER': 'ARTIST_TIER',
+                'TICKETS_SOLD': 'TICKETS_SOLD',
+                'SELLOUT_STATUS': 'SELLOUT_STATUS',
+                'ATTENDANCE_RATE': 'ATTENDANCE_RATE',
+                'AVERAGE_TICKET_PRICE': 'AVERAGE_TICKET_PRICE',
+                'TICKET_PRICE_RANGE': 'TICKET_PRICE_RANGE',
+                'REVENUE': 'REVENUE',
+                'EVENT_DATE_STR': 'EVENT_DATE_STR',
+                'LAST_UPDATED': 'LAST_UPDATED',
+                'INGESTED_AT': 'INGESTED_AT'
+            }
+        else:
+            # Future shows mapping
+            column_mapping = {
+                'artist_name': 'ARTIST_NAME',
+                'show_date': 'SHOW_DATE',
+                'venue_name': 'VENUE_NAME',
+                'city_name': 'CITY_NAME',
+                'state_code': 'STATE_CODE',
+                'country_name': 'COUNTRY_NAME',
+                'source': 'SOURCE',
+                'collected_at': 'COLLECTED_AT',
+                'show_id': 'SHOW_ID',
+                'venue_id': 'VENUE_ID',
+                'TICKETS_SOLD_SO_FAR': 'TICKETS_SOLD',
+                'AVERAGE_TICKET_PRICE': 'AVERAGE_TICKET_PRICE',
+                'CURRENT_REVENUE': 'REVENUE',
+                'INGESTED_AT': 'INGESTED_AT'
+            }
+        
+        # Get columns that exist in both CSV and table
+        available_columns = [col for col in column_mapping.keys() if col in df.columns]
+        column_names = ', '.join([f'"{column_mapping[col]}"' for col in available_columns])
+        placeholders = ', '.join(['%s'] * len(available_columns))
+        
+        # Prepare data for insertion using mapped columns
+        data_to_insert = []
+        for _, row in df.iterrows():
+            row_data = []
+            for col in available_columns:
+                val = row[col]
+                if pd.isna(val):
+                    row_data.append(None)
+                else:
+                    row_data.append(str(val))
+            data_to_insert.append(tuple(row_data))
+        
+        # Insert data in batches
+        insert_sql = f"INSERT INTO {full_table_name} ({column_names}) VALUES ({placeholders})"
+        
+        try:
+            cursor.executemany(insert_sql, data_to_insert)
+            conn.commit()
+            success = True
+            nrows = len(df)
+        except Exception as e:
+            logger.error(f"Error inserting data: {e}")
+            success = False
+            nrows = 0
+        finally:
+            cursor.close()
         
         if success:
             logger.info(f"Successfully ingested {nrows} rows into {full_table_name}")
@@ -118,11 +193,11 @@ def main():
     
     # Define file mappings
     csv_files = {
-        'all_shows_2015_to_2025_with_tickets.csv': 'SHOWS_HIS',
-        'real_us_future_concerts_current_sales_2025_2026.csv': 'SHOWS_FUTURE'
+        'shows_history.csv': 'SHOWS_HIS',
+        'shows_future.csv': 'SHOWS_FUTURE'
     }
     
-    base_path = os.path.dirname(os.path.dirname(__file__))  # Go up to FANalyze_v2.0
+    base_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'raw', 'csv')  # Go to data/raw/csv
     
     success_count = 0
     total_count = len(csv_files)

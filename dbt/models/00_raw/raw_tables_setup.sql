@@ -1,8 +1,6 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', enabled=false) }}
 
--- This model runs the table creation macro
--- It's a placeholder that ensures the macro runs during dbt execution
-
-{{ create_raw_tables() }}
+-- This model is disabled since tables already exist
+-- Tables were created manually via the Python ingestion script
 
 select 1 as setup_complete

@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema='marts') }}
 
 with historical_shows as (
     select 
@@ -27,8 +27,8 @@ with historical_shows as (
         revenue_per_ticket,
         source,
         'Historical' as show_status,
-        last_updated,
-        ingested_at
+        null as last_updated,
+        current_timestamp as ingested_at
         
     from {{ ref('int_shows') }}
 ),
@@ -68,7 +68,7 @@ upcoming_shows as (
         null as last_updated,
         collected_at as ingested_at
         
-    from {{ ref('stg_future_concerts') }}
+    from {{ ref('stg_shows_future') }}
 ),
 
 unified_shows as (

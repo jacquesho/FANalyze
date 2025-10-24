@@ -1,7 +1,7 @@
-{{ config(materialized='view') }}
+{{ config(materialized='view', schema='staging') }}
 
 with source_data as (
-    select * from {{ source('raw_data', 'shows_future') }}
+    select * from {{ source('FAN_RAW', 'shows_future') }}
 ),
 
 cleaned_data as (
@@ -16,7 +16,7 @@ cleaned_data as (
         
         -- Dates
         try_cast(show_date as date) as show_date,
-        try_cast(show_date_parsed as date) as show_date_parsed,
+        try_cast(collected_at as timestamp) as collected_at,
         
         -- Location
         city_name,
@@ -24,8 +24,7 @@ cleaned_data as (
         country_name,
         
         -- Metadata
-        source,
-        collected_at
+        source
         
     from source_data
     where show_date is not null

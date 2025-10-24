@@ -5,6 +5,8 @@ Contains API endpoints, rate limiting, and connection settings
 """
 
 import os
+import snowflake.connector
+from cryptography.hazmat.primitives import serialization
 from dataclasses import dataclass
 from typing import Dict, Any
 from dotenv import load_dotenv
@@ -92,6 +94,45 @@ class APIConfigManager:
 
 # Global instance
 api_config = APIConfigManager()
+
+
+def get_snowflake_connection():
+    """Get Snowflake connection using keypair authentication"""
+    try:
+        # Get keypair file path
+        keypair_path = os.getenv('SNOWFLAKE_KEYPAIR_PATH', '.secrets/rsa_key.p8')
+        private_key_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), keypair_path)
+        
+        # Read and convert private key from PKCS#8 to PEM format
+        with open(private_key_path, 'rb') as key_file:
+            private_key_pem = key_file.read()
+        
+        # Load the private key and convert to DER format for Snowflake
+        private_key = serialization.load_pem_private_key(
+            private_key_pem,
+            password=None,  # No password for unencrypted keys
+        )
+        
+        # Convert to DER format
+        private_key_der = private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        
+        conn = snowflake.connector.connect(
+            user=os.getenv('SNOWFLAKE_USER'),
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA', 'FAN_RAW'),
+            role=os.getenv('SNOWFLAKE_ROLE', 'ACCOUNTADMIN'),
+            private_key=private_key_der,
+            authenticator='snowflake'
+        )
+        return conn
+    except Exception as e:
+        raise Exception(f"Failed to connect to Snowflake: {e}")
 
 
 def main():

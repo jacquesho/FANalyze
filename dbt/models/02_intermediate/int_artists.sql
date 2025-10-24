@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema='intermediate') }}
 
 with all_artists as (
     select distinct
@@ -8,11 +8,11 @@ with all_artists as (
         count(distinct show_id) as total_shows,
         min(show_date) as first_show_date,
         max(show_date) as last_show_date,
-        avg(attendance_rate) as avg_attendance_rate,
-        avg(average_ticket_price) as avg_ticket_price,
-        sum(revenue) as total_revenue,
+        round(avg(attendance_rate), 2) as avg_attendance_rate,
+        round(avg(average_ticket_price), 2) as avg_ticket_price,
+        round(sum(revenue), 2) as total_revenue,
         sum(tickets_sold) as total_tickets_sold
-    from {{ ref('stg_all_shows') }}
+    from {{ ref('stg_shows_his') }}
     group by artist_id, artist_name, artist_tier
 ),
 
@@ -20,7 +20,7 @@ future_artists as (
     select distinct
         artist_name,
         count(distinct show_id) as upcoming_shows
-    from {{ ref('stg_future_concerts') }}
+    from {{ ref('stg_shows_future') }}
     group by artist_name
 )
 

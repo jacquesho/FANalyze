@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema='intermediate') }}
 
 with show_metrics as (
     select 
@@ -52,7 +52,7 @@ with show_metrics as (
             when extract(month from show_date) in (9, 10, 11) then 'Fall'
         end as season
         
-    from {{ ref('stg_all_shows') }}
+    from {{ ref('stg_shows_his') }}
 )
 
 select * from show_metrics

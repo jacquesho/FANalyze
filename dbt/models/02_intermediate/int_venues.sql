@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema='intermediate') }}
 
 with venue_performance as (
     select 
@@ -12,14 +12,14 @@ with venue_performance as (
         market_size,
         count(distinct show_id) as total_shows,
         count(distinct artist_id) as unique_artists,
-        avg(attendance_rate) as avg_attendance_rate,
-        avg(average_ticket_price) as avg_ticket_price,
-        sum(revenue) as total_revenue,
+        round(avg(attendance_rate), 2) as avg_attendance_rate,
+        round(avg(average_ticket_price), 2) as avg_ticket_price,
+        round(sum(revenue), 2) as total_revenue,
         sum(tickets_sold) as total_tickets_sold,
         sum(case when is_sellout then 1 else 0 end) as sellout_count,
         min(show_date) as first_show_date,
         max(show_date) as last_show_date
-    from {{ ref('stg_all_shows') }}
+    from {{ ref('stg_shows_his') }}
     group by venue_id, venue_name, venue_type, city_name, state_code, country_name, market_size
 ),
 
@@ -28,7 +28,7 @@ upcoming_venues as (
         venue_id,
         venue_name,
         count(distinct show_id) as upcoming_shows
-    from {{ ref('stg_future_concerts') }}
+    from {{ ref('stg_shows_future') }}
     group by venue_id, venue_name
 )
 

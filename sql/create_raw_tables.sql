@@ -51,15 +51,6 @@ CREATE OR REPLACE TABLE SHOWS_FUTURE (
     INGESTED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_shows_his_show_date ON SHOWS_HIS (SHOW_DATE);
-CREATE INDEX IF NOT EXISTS idx_shows_his_artist_id ON SHOWS_HIS (ARTIST_ID);
-CREATE INDEX IF NOT EXISTS idx_shows_his_venue_id ON SHOWS_HIS (VENUE_ID);
-
-CREATE INDEX IF NOT EXISTS idx_shows_future_show_date ON SHOWS_FUTURE (SHOW_DATE);
-CREATE INDEX IF NOT EXISTS idx_shows_future_artist_name ON SHOWS_FUTURE (ARTIST_NAME);
-
--- Grant permissions (adjust as needed)
--- GRANT SELECT ON SHOWS_HIS TO ROLE DBT_ROLE;
--- GRANT SELECT ON SHOWS_FUTURE TO ROLE DBT_ROLE;
--- GRANT SELECT ON SHOWS_FUTURE_SALES TO ROLE DBT_ROLE;
+-- Note: No indexes needed for raw tables
+-- These tables are only used for CSV landing and dbt staging
+-- dbt will create optimized tables in staging/intermediate/marts layers

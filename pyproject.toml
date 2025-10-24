@@ -12,6 +12,8 @@ dependencies = [
     "dbt-core>=1.10.13",
     "dbt-snowflake>=1.10.2",
     "faker>=30.0.0",
+    "cryptography>=45.0.7",
+    "psycopg2-binary>=2.9.11",
 ]
 
 [project.optional-dependencies]

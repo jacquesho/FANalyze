@@ -1,7 +1,7 @@
-{{ config(materialized='view') }}
+{{ config(materialized='view', schema='staging') }}
 
 with source_data as (
-    select * from {{ source('raw_data', 'shows_his') }}
+    select * from {{ source('FAN_RAW', 'shows_his') }}
 ),
 
 cleaned_data as (

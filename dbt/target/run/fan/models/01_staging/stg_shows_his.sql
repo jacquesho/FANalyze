@@ -1,12 +1,11 @@
 
+  create or replace   view DB_T4.FAN_staging.stg_shows_his
   
+  
+  
+  
+  as (
     
-
-create or replace transient table DB_T4.FAN_staging.stg_shows_his
-    
-    
-    
-    as (
 
 with source_data as (
     select * from DB_T4.FAN_RAW.shows_his
@@ -71,8 +70,5 @@ cleaned_data as (
 )
 
 select * from cleaned_data
-    )
-;
+  );
 
-
-  

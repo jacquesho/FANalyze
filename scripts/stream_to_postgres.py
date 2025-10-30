@@ -32,7 +32,7 @@ class PostgresTicketWriter:
         """Create the ticket_sales table if it doesn't exist"""
         
         create_table_sql = """
-        CREATE TABLE IF NOT EXISTS ticket_sales (
+        CREATE TABLE IF NOT EXISTS staging.ticket_sales (
             id SERIAL PRIMARY KEY,
             timestamp TIMESTAMP NOT NULL,
             show_id VARCHAR(255) NOT NULL,
@@ -53,9 +53,9 @@ class PostgresTicketWriter:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        CREATE INDEX IF NOT EXISTS idx_ticket_sales_show_id ON ticket_sales(show_id);
-        CREATE INDEX IF NOT EXISTS idx_ticket_sales_timestamp ON ticket_sales(timestamp);
-        CREATE INDEX IF NOT EXISTS idx_ticket_sales_show_date ON ticket_sales(show_date);
+        CREATE INDEX IF NOT EXISTS idx_ticket_sales_show_id ON staging.ticket_sales(show_id);
+        CREATE INDEX IF NOT EXISTS idx_ticket_sales_timestamp ON staging.ticket_sales(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_ticket_sales_show_date ON staging.ticket_sales(show_date);
         """
         
         self.cur.execute(create_table_sql)
@@ -63,10 +63,10 @@ class PostgresTicketWriter:
         print("✅ Postgres database setup complete")
     
     def write_sale_event(self, sale_event):
-        """Write a sale event to Postgres"""
+        """Write a sale event to Postgres immediately (row-by-row ingestion)"""
         
         insert_sql = """
-        INSERT INTO ticket_sales (
+        INSERT INTO staging.ticket_sales (
             timestamp, show_id, artist_name, venue_name, show_date,
             city_name, state_code, tickets_sold, cumulative_tickets_sold,
             revenue, cumulative_revenue, venue_capacity, sales_rate,
@@ -79,14 +79,34 @@ class PostgresTicketWriter:
         )
         """
         
-        # Convert timestamp string to datetime
-        sale_event['timestamp'] = datetime.fromisoformat(sale_event['timestamp'].replace('Z', '+00:00'))
-        sale_event['show_date'] = datetime.fromisoformat(sale_event['show_date']).date()
+        try:
+            # Convert timestamp string to datetime
+            sale_event['timestamp'] = datetime.fromisoformat(sale_event['timestamp'].replace('Z', '+00:00'))
+            sale_event['show_date'] = datetime.fromisoformat(sale_event['show_date']).date()
+            
+            # Execute and commit immediately (row-by-row)
+            self.cur.execute(insert_sql, sale_event)
+            self.conn.commit()
+            
+            # Return success for real-time feedback
+            return True
+            
+        except Exception as e:
+            # Rollback on error and re-raise
+            self.conn.rollback()
+            raise e
+    
+    def verify_row_ingestion(self, show_id, timestamp):
+        """Verify that a specific row was successfully ingested"""
         
-        self.cur.execute(insert_sql, sale_event)
-        self.conn.commit()
+        verify_sql = """
+        SELECT COUNT(*) FROM staging.ticket_sales 
+        WHERE show_id = %s AND timestamp = %s
+        """
         
-        print(f"📝 Wrote sale: {sale_event['artist_name']} - {sale_event['tickets_sold']} tickets (${sale_event['revenue']:,})")
+        self.cur.execute(verify_sql, (show_id, timestamp))
+        count = self.cur.fetchone()[0]
+        return count > 0
     
     def get_stats(self):
         """Get current database statistics"""
@@ -99,7 +119,7 @@ class PostgresTicketWriter:
             SUM(revenue) as total_revenue,
             MIN(timestamp) as first_sale,
             MAX(timestamp) as last_sale
-        FROM ticket_sales
+        FROM staging.ticket_sales
         """
         
         self.cur.execute(stats_sql)
@@ -124,11 +144,11 @@ def run_stream_to_postgres(duration_minutes=5, speed_multiplier=10):
     
     # Postgres configuration
     db_config = {
-        'host': 'localhost',
-        'port': 5432,
-        'database': 'postgres',  # Use default database
-        'user': os.getenv('POSTGRES_USER_INGEST', 'postgres'),
-        'password': os.getenv('POSTGRES_PASSWORD_INGEST', 'password')
+        'host': os.getenv('POSTGRES_HOST', 'localhost'),
+        'port': int(os.getenv('POSTGRES_PORT', '5432')),
+        'database': os.getenv('POSTGRES_DB', 'postgres'),
+        'user': os.getenv('POSTGRES_USER_INGEST', 'user_fanalyze_ingest'),
+        'password': os.getenv('POSTGRES_PASSWORD_INGEST', 'fanalyze_ingest_password')
     }
     
     print("🚀 Starting ticket sales stream to Postgres...")
@@ -146,18 +166,39 @@ def run_stream_to_postgres(duration_minutes=5, speed_multiplier=10):
             '--speed', str(speed_multiplier),
             '--duration', str(duration_minutes),
             '--format', 'jsonl'
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
         
-        # Read and process each line
+        # Read and process each line as it arrives (row-by-row ingestion)
+        event_count = 0
+        print("🔄 Starting real-time row-by-row ingestion...")
+        
         for line in process.stdout:
             if line.strip():
                 try:
+                    # Parse JSON immediately as it arrives
                     sale_event = json.loads(line.strip())
-                    writer.write_sale_event(sale_event)
+                    
+                    # Write to Postgres immediately (row-by-row)
+                    success = writer.write_sale_event(sale_event)
+                    
+                    if success:
+                        event_count += 1
+                        
+                        # Verify the row was ingested (optional verification)
+                        # verify_ingestion = writer.verify_row_ingestion(sale_event['show_id'], sale_event['timestamp'])
+                        
+                        # Show progress for every event (real-time feedback)
+                        print(f"✅ Row {event_count}: {sale_event['artist_name']} - {sale_event['tickets_sold']} tickets (${sale_event['revenue']:,.2f})")
+                    else:
+                        print(f"❌ Failed to ingest row: {sale_event['artist_name']}")
+                    
                 except json.JSONDecodeError:
+                    print(f"⚠️ Skipping invalid JSON: {line.strip()[:100]}...")
                     continue
                 except Exception as e:
-                    print(f"❌ Error writing to Postgres: {e}")
+                    print(f"❌ Error writing row to Postgres: {e}")
+        
+        print(f"📊 Total rows ingested: {event_count}")
         
         # Wait for process to complete
         process.wait()
@@ -166,11 +207,11 @@ def run_stream_to_postgres(duration_minutes=5, speed_multiplier=10):
         stats = writer.get_stats()
         print("\n" + "=" * 50)
         print("📊 Final Statistics:")
-        print(f"Total sales events: {stats['total_sales']:,}")
-        print(f"Unique shows: {stats['unique_shows']}")
-        print(f"Total tickets sold: {stats['total_tickets']:,}")
-        print(f"Total revenue: ${stats['total_revenue']:,.2f}")
-        print(f"Time range: {stats['first_sale']} to {stats['last_sale']}")
+        print(f"Total sales events: {stats['total_sales'] or 0:,}")
+        print(f"Unique shows: {stats['unique_shows'] or 0}")
+        print(f"Total tickets sold: {stats['total_tickets'] or 0:,}")
+        print(f"Total revenue: ${stats['total_revenue'] or 0:,.2f}")
+        print(f"Time range: {stats['first_sale'] or 'N/A'} to {stats['last_sale'] or 'N/A'}")
         
     except KeyboardInterrupt:
         print("\n⏹️ Stream stopped by user")

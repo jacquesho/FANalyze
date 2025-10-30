@@ -12,7 +12,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 # Add scripts directory to path
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
 from database.csv_loader import main as load_csv
 from validation.data_validation import main as validate_data
@@ -39,7 +39,7 @@ def test_postgres_connection():
 
 def test_csv_file_exists():
     """Test if CSV file exists."""
-    csv_path = "tests/DB_tests/sample_data.csv"
+    csv_path = "sample_data.csv"
     if os.path.exists(csv_path):
         console.print(f"✅ CSV file found: {csv_path}", style="green")
         return True

@@ -11,59 +11,154 @@ import numpy as np
 import json
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import argparse
+import psycopg
+from dotenv import load_dotenv
 
 # Add config directory to path
 sys.path.append(str(Path(__file__).parent.parent / "config"))
 from api_config import get_snowflake_connection
+
+# Load environment variables
+load_dotenv()
 
 # Set random seed for reproducible results
 np.random.seed(42)
 random.seed(42)
 
 class TicketSalesStreamer:
-    def __init__(self, speed_multiplier=1.0, output_format='jsonl'):
+    def __init__(self, speed_multiplier=1.0, output_format='jsonl', save_to_postgres=True):
         """
         Initialize the ticket sales streamer
         
         Args:
             speed_multiplier: Speed up simulation (1.0 = real time, 10.0 = 10x faster)
             output_format: 'jsonl', 'kafka', or 'console'
+            save_to_postgres: Whether to save events to PostgreSQL
         """
         self.speed_multiplier = speed_multiplier
         self.output_format = output_format
+        self.save_to_postgres = save_to_postgres
         self.shows = self.get_future_shows()
         self.active_sales = {}  # Track ongoing sales for each show
+        self.event_counter = 0  # Counter for unique event IDs
         
     def get_future_shows(self):
-        """Get future shows from Snowflake that need ticket sales data"""
+        """Get future shows from Snowflake with real ticket sales and venue capacity data"""
         
         query = """
         SELECT 
-            show_id,
-            artist_name,
-            venue_name,
-            show_date,
-            city_name,
-            state_code,
-            source,
-            20000 as venue_capacity,
-            200 as average_ticket_price,
-            0 as tickets_sold,
-            'A-list' as artist_tier
-        FROM fan_staging.stg_shows_future 
-        WHERE show_date > CURRENT_DATE()
-        ORDER BY show_date
+            fs.show_id,
+            fs.artist_name,
+            fs.venue_name,
+            fs.show_date,
+            fs.city_name,
+            fs.state_code,
+            fs.source,
+            COALESCE(fact.venue_capacity, dv.venue_capacity, 20000) as venue_capacity,
+            COALESCE(fact.average_ticket_price, dv.avg_ticket_price, 200) as average_ticket_price,
+            COALESCE(fact.tickets_sold, 0) as tickets_sold,
+            COALESCE(fact.sales_performance, 'Average Sales') as artist_tier
+        FROM fan_staging.stg_shows_future fs
+        LEFT JOIN fan_marts.fact_shows fact ON fs.show_id = fact.show_id
+        LEFT JOIN fan_marts.dim_venues dv ON fs.venue_name = dv.venue_name
+        WHERE fs.show_date > CURRENT_DATE()
+        ORDER BY fs.show_date
         """
         
         conn = get_snowflake_connection()
         df = pd.read_sql(query, conn)
         conn.close()
         
-        print(f"Found {len(df)} shows for real-time sales simulation")
+        print(f"Found {len(df)} shows for real-time sales simulation", file=sys.stderr)
+        
+        # Show summary of real data
+        if not df.empty:
+            total_capacity = df['VENUE_CAPACITY'].sum()
+            total_sold = df['TICKETS_SOLD'].sum()
+            avg_price = df['AVERAGE_TICKET_PRICE'].mean()
+            print(f"📊 Real data summary:", file=sys.stderr)
+            print(f"   Total venue capacity: {total_capacity:,}", file=sys.stderr)
+            print(f"   Already sold: {total_sold:,} tickets", file=sys.stderr)
+            print(f"   Average ticket price: ${avg_price:.2f}", file=sys.stderr)
+            print(f"   Shows with existing sales: {(df['TICKETS_SOLD'] > 0).sum()}", file=sys.stderr)
+        
         return df
+    
+    def get_postgres_connection(self):
+        """Get PostgreSQL connection for data loading."""
+        try:
+            host = os.getenv("POSTGRES_HOST")
+            port = os.getenv("POSTGRES_PORT")
+            dbname = os.getenv("POSTGRES_DB")
+            user = os.getenv("POSTGRES_USER_INGEST")
+            password = os.getenv("POSTGRES_PASSWORD_INGEST")
+
+            missing = [name for name, val in [
+                ("POSTGRES_HOST", host),
+                ("POSTGRES_PORT", port),
+                ("POSTGRES_DB", dbname),
+                ("POSTGRES_USER_INGEST", user),
+                ("POSTGRES_PASSWORD_INGEST", password),
+            ] if not val]
+
+            if missing:
+                print(f"❌ Missing required environment variables: {', '.join(missing)}")
+                return None
+
+            conn = psycopg.connect(
+                host=host,
+                port=port,
+                dbname=dbname,
+                user=user,
+                password=password,
+            )
+            return conn
+        except Exception as e:
+            print(f"❌ PostgreSQL connection failed: {e}")
+            return None
+    
+    def save_event_to_postgres(self, sale_event):
+        """Save a sale event to PostgreSQL staging table."""
+        if not self.save_to_postgres:
+            return True
+            
+        try:
+            conn = self.get_postgres_connection()
+            if not conn:
+                return False
+            
+            cursor = conn.cursor()
+            
+            # Increment event counter for unique ID
+            self.event_counter += 1
+            
+            # Prepare data for insertion
+            event_json = json.dumps(sale_event, separators=(",", ":"))
+            file_name = f"stream_tickets_{datetime.now().strftime('%Y%m%d')}.jsonl"
+            
+            insert_sql = """
+            INSERT INTO staging.test_ingest (id, data_content, file_name, loaded_at)
+            VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                data_content = EXCLUDED.data_content,
+                file_name = EXCLUDED.file_name,
+                loaded_at = NOW()
+            """
+            
+            cursor.execute(insert_sql, (self.event_counter, event_json, file_name))
+            conn.commit()
+            
+            cursor.close()
+            conn.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to save event to PostgreSQL: {e}")
+            return False
     
     def calculate_sales_velocity(self, show_date, artist_tier, venue_capacity, days_until_show):
         """Calculate realistic sales velocity based on show characteristics"""
@@ -122,8 +217,10 @@ class TicketSalesStreamer:
         # Get or initialize sales tracking for this show
         show_id = show_row['SHOW_ID']
         if show_id not in self.active_sales:
+            # Start with existing tickets sold from fact_shows
+            initial_tickets_sold = show_row.get('TICKETS_SOLD', 0)
             self.active_sales[show_id] = {
-                'tickets_sold': 0,
+                'tickets_sold': initial_tickets_sold,
                 'last_sale_time': datetime.now(),
                 'show_row': show_row
             }
@@ -171,13 +268,14 @@ class TicketSalesStreamer:
                 'state_code': show_row['STATE_CODE'],
                 'tickets_sold': tickets_in_sale,
                 'cumulative_tickets_sold': sales_tracker['tickets_sold'],
-                'revenue': revenue,
-                'cumulative_revenue': sales_tracker['tickets_sold'] * average_ticket_price,
-                'venue_capacity': venue_capacity,
+                'revenue': round(revenue, 2),
+                'cumulative_revenue': round(sales_tracker['tickets_sold'] * average_ticket_price, 2),
+                'venue_capacity': int(venue_capacity),
                 'sales_rate': round((sales_tracker['tickets_sold'] / venue_capacity) * 100, 2),
                 'days_until_show': days_until_show,
                 'artist_tier': artist_tier,
-                'average_ticket_price': average_ticket_price
+                'average_ticket_price': round(average_ticket_price, 2),
+                'tickets_remaining': int(venue_capacity - sales_tracker['tickets_sold'])
             }
             
             return sale_event
@@ -191,9 +289,10 @@ class TicketSalesStreamer:
             print(json.dumps(sale_event))
         elif self.output_format == 'console':
             print(f"🎫 {sale_event['artist_name']} at {sale_event['venue_name']} - "
-                  f"{sale_event['tickets_sold']} tickets sold (${sale_event['revenue']:,}) - "
+                  f"{sale_event['tickets_sold']} tickets sold (${sale_event['revenue']:,.2f}) - "
                   f"Total: {sale_event['cumulative_tickets_sold']}/{sale_event['venue_capacity']} "
-                  f"({sale_event['sales_rate']}%)")
+                  f"({sale_event['sales_rate']}%) - "
+                  f"Remaining: {sale_event['tickets_remaining']}")
         elif self.output_format == 'kafka':
             # TODO: Implement Kafka producer
             print(f"KAFKA: {json.dumps(sale_event)}")
@@ -207,17 +306,17 @@ class TicketSalesStreamer:
             max_events: Maximum number of events to generate (None = unlimited)
         """
         
-        print(f"Starting real-time ticket sales stream...")
-        print(f"Speed multiplier: {self.speed_multiplier}x")
-        print(f"Output format: {self.output_format}")
-        print(f"Shows being tracked: {len(self.shows)}")
+        print(f"Starting real-time ticket sales stream...", file=sys.stderr)
+        print(f"Speed multiplier: {self.speed_multiplier}x", file=sys.stderr)
+        print(f"Output format: {self.output_format}", file=sys.stderr)
+        print(f"Shows being tracked: {len(self.shows)}", file=sys.stderr)
         
         if duration_minutes:
-            print(f"Duration: {duration_minutes} minutes")
+            print(f"Duration: {duration_minutes} minutes", file=sys.stderr)
         if max_events:
-            print(f"Max events: {max_events}")
+            print(f"Max events: {max_events}", file=sys.stderr)
         
-        print("=" * 50)
+        print("=" * 50, file=sys.stderr)
         
         start_time = datetime.now()
         event_count = 0
@@ -250,9 +349,9 @@ class TicketSalesStreamer:
                 time.sleep(sleep_time)
                 
         except KeyboardInterrupt:
-            print("\nStream stopped by user")
+            print("\nStream stopped by user", file=sys.stderr)
         
-        print(f"\nStream completed. Generated {event_count} events in {duration_minutes or 'unlimited'} time.")
+        print(f"\nStream completed. Generated {event_count} events in {duration_minutes or 'unlimited'} time.", file=sys.stderr)
 
 def main():
     """Main function to run the ticket sales stream"""

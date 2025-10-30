@@ -1,0 +1,148 @@
+# Data quality tests for marts layer models
+# File: models/03_marts/schema.yml
+
+version: 2
+
+models:
+  - name: fact_ticket_sales
+    description: "Core fact table for ticket sales events with incremental loading"
+    columns:
+      - name: ticket_sales_key
+        description: "Unique identifier for each ticket sales event"
+        tests:
+          - unique
+          - not_null
+      
+      - name: show_id
+        description: "Unique identifier for the show"
+        tests:
+          - not_null
+      
+      - name: artist_name
+        description: "Name of the performing artist"
+        tests:
+          - not_null
+      
+      - name: tickets_sold
+        description: "Number of tickets sold in this event"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+      
+      - name: revenue
+        description: "Revenue generated from this ticket sale event"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      
+      - name: demand_category
+        description: "Categorized demand level based on sales rate"
+        tests:
+          - accepted_values:
+              values: ['High Demand', 'Medium Demand', 'Low Demand', 'Very Low Demand']
+      
+      - name: time_to_show_category
+        description: "Categorized time until show"
+        tests:
+          - accepted_values:
+              values: ['Last Week', 'Last Month', 'Last Quarter', 'Future']
+      
+      - name: revenue_per_ticket
+        description: "Revenue per ticket sold"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+  
+  - name: dim_ticket_performance
+    description: "Dimension table with aggregated performance metrics per show"
+    columns:
+      - name: show_id
+        description: "Unique identifier for the show"
+        tests:
+          - unique
+          - not_null
+      
+      - name: artist_name
+        description: "Name of the performing artist"
+        tests:
+          - not_null
+      
+      - name: venue_name
+        description: "Name of the venue"
+        tests:
+          - not_null
+      
+      - name: total_tickets_sold
+        description: "Total tickets sold for this show"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      
+      - name: final_revenue
+        description: "Final revenue for this show"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      
+      - name: performance_rating
+        description: "Overall performance rating for the show"
+        tests:
+          - accepted_values:
+              values: ['Excellent', 'Good', 'Average', 'Below Average', 'Poor']
+      
+      - name: capacity_category
+        description: "Venue capacity utilization category"
+        tests:
+          - accepted_values:
+              values: ['Sold Out', 'Near Capacity', 'Half Full', 'Quarter Full', 'Low Attendance']
+  
+  - name: fct_daily_ticket_summary
+    description: "Daily aggregated ticket sales summaries"
+    columns:
+      - name: sale_date
+        description: "Date of ticket sales"
+        tests:
+          - not_null
+      
+      - name: artist_name
+        description: "Name of the performing artist"
+        tests:
+          - not_null
+      
+      - name: daily_tickets_sold
+        description: "Total tickets sold on this date"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      
+      - name: daily_revenue
+        description: "Total revenue generated on this date"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      
+      - name: daily_performance_rating
+        description: "Overall daily performance rating"
+        tests:
+          - accepted_values:
+              values: ['Excellent Day', 'Good Day', 'Average Day', 'Below Average Day', 'Poor Day']
+      
+      - name: daily_revenue_tier
+        description: "Daily revenue tier classification"
+        tests:
+          - accepted_values:
+              values: ['High Revenue', 'Medium Revenue', 'Low Revenue', 'Very Low Revenue']

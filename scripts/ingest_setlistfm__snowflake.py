@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-End-to-end ingestion for SetlistFM → Snowflake (testing schema)
+Load shows_history.csv into Snowflake (CSV-only path).
 
-Pipeline steps:
-1) Ensure Snowflake testing tables exist (DDL)
-2) For each active artist in config:
-   - Fetch all setlists (paginated)
-   - Build shows and setlists JSON rows
-3) Load rows into testing.raw_shows and testing.raw_setlists
+Usage:
+  # Ensure CSV exists first (run export_setlistfm_history_to_csv.py)
+  uv run python scripts/ingest_setlistfm__snowflake.py
+
+Set LOAD_TO_SNOWFLAKE=true to enable load (default enabled).
 """
 import sys
+import os
 import json
 from pathlib import Path
 from typing import Dict, Any, List
@@ -18,44 +18,72 @@ import re
 from rich.console import Console
 from dotenv import load_dotenv
 from pathlib import Path
+import pandas as pd
 
 # Ensure project root is on sys.path so `scripts.*` imports resolve when run directly
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.data_collection.setlistfm_api import SetlistFMAPI
-from scripts.database.sf_loader import ensure_testing_tables, get_snowflake_connection
+# Optional CSV → Snowflake loader
+try:
+    from scripts.ingest_csv_shows__snowflake import ingest_csv_to_snowflake
+except Exception:
+    ingest_csv_to_snowflake = None
 
 load_dotenv()
 console = Console()
 
 
-def _build_show_rows(artist_name: str, artist_id: str, setlists: List[Dict[str, Any]]):
+def _safe_get(d: Dict[str, Any], path: List[str], default: str = "") -> str:
+    cur: Any = d
+    for key in path:
+        if isinstance(cur, dict) and key in cur:
+            cur = cur[key]
+        else:
+            return default
+    return cur if isinstance(cur, str) else (str(cur) if cur is not None else default)
+
+
+def _build_show_rows_csv(artist_name: str, artist_id: str, setlists: List[Dict[str, Any]]):
     rows = []
     for sl in setlists:
-        show_id = sl.get("id")
-        show_date = sl.get("eventDate")  # DD-MM-YYYY
-        # Keep raw JSON as string for VARIANT
+        show_id = _safe_get(sl, ["id"])  # setlist id
+        show_date = _safe_get(sl, ["eventDate"])  # DD-MM-YYYY
+        venue_name = _safe_get(sl, ["venue", "name"])
+        venue_id = _safe_get(sl, ["venue", "id"])  # may be empty
+        city_name = _safe_get(sl, ["venue", "city", "name"])
+        state_code = _safe_get(sl, ["venue", "city", "stateCode"])  # may be empty/non-US
+        country_name = _safe_get(sl, ["venue", "city", "country", "name"])
+
         rows.append(
             {
-                "artist_id": artist_id,
-                "artist_name": artist_name,
-                "show_id": show_id,
-                "show_date": show_date,
-                "payload_json": json.dumps(sl),
+                "ARTIST_ID": artist_id,
+                "ARTIST_NAME": artist_name,
+                "SHOW_ID": show_id,
+                "SHOW_DATE": show_date,
+                "SOURCE": "setlist.fm",
+                "VENUE_NAME": venue_name,
+                "VENUE_ID": venue_id,
+                "CITY_NAME": city_name,
+                "STATE_CODE": state_code,
+                "COUNTRY_NAME": country_name,
             }
         )
     return rows
 
 
-def _write_jsonl(files_dir: Path, artist_slug: str, rows: List[Dict[str, Any]]) -> Path:
-    """Write rows as JSON Lines to a file for staging."""
-    files_dir.mkdir(parents=True, exist_ok=True)
-    out_path = files_dir / f"{artist_slug}_shows.jsonl"
-    with out_path.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    return out_path
+def _write_csv(all_rows: List[Dict[str, Any]], csv_path: Path) -> Path:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(all_rows)
+    # Ensure column order
+    columns = [
+        "ARTIST_ID", "ARTIST_NAME", "SHOW_ID", "SHOW_DATE", "SOURCE",
+        "VENUE_NAME", "VENUE_ID", "CITY_NAME", "STATE_CODE", "COUNTRY_NAME",
+    ]
+    df = df[columns]
+    df.to_csv(csv_path, index=False)
+    return csv_path
 
 
 def _slugify(text: str) -> str:
@@ -65,78 +93,39 @@ def _slugify(text: str) -> str:
     return slug or "artist"
 
 
-def _has_artist_loaded(artist_id: str) -> bool:
-    """Check if artist already has rows in testing.raw_shows (for resume support)."""
-    conn = get_snowflake_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM testing.raw_shows WHERE artist_id=%s", (artist_id,))
-            (cnt,) = cur.fetchone()
-            return int(cnt) > 0
-    finally:
-        conn.close()
+def _enrich_csv_in_place(csv_path: Path) -> None:
+    """Load CSV, enrich with synthetic metrics, overwrite same file."""
+    from scripts.enrich_history_from_setlistfm import enrich_frame  # reuse existing logic
+    df = pd.read_csv(csv_path)
+    enriched = enrich_frame(df)
+    enriched.to_csv(csv_path, index=False)
 
 
-def main() -> bool:
-    console.print("🚀 SetlistFM → Snowflake (testing) Ingestion", style="bold blue")
+def main(load_to_snowflake: bool = True) -> bool:
+    console.print("🚀 CSV → Snowflake (SHOWS_HIS)", style="bold blue")
+    csv_path = PROJECT_ROOT / "data" / "raw" / "csv" / "shows_history.csv"
+    if not csv_path.exists():
+        console.print(f"❌ CSV not found: {csv_path}", style="red")
+        console.print("Run scripts/export_setlistfm_history_to_csv.py first.", style="yellow")
+        return False
 
-    # 1) Ensure DDL (resolve relative to project root regardless of CWD)
-    ddl_file = PROJECT_ROOT / "sql" / "init_setlistfm_testing.sql"
-    ensure_testing_tables(ddl_file)
+    if ingest_csv_to_snowflake is None:
+        console.print("❌ CSV ingester not available", style="red")
+        return False
 
-    # 2) Extract
-    api = SetlistFMAPI()
-    all_artists = api.artist_config.get_active_artists()
-
-    # Local staging directory for JSONL files
-    staging_dir = PROJECT_ROOT / "data" / "external" / "staging_json"
-
-    for artist in all_artists:
-        console.print(f"\n🎵 Fetching artist: {artist.name}", style="cyan")
-
-        # Resume: skip if already loaded
-        if _has_artist_loaded(artist.musicbrainz_id):
-            console.print("   • Detected existing rows in testing.raw_shows, skipping fetch/load", style="yellow")
-            continue
-        # Full-history fetch per artist
-        setlists = api.fetch_artist_setlists(artist, artist.starting_tour)
-
-        show_rows = _build_show_rows(artist.name, artist.musicbrainz_id, setlists)
-        # 3) Write per-artist JSONL and stage to Snowflake
-        artist_slug = _slugify(artist.name)
-        jsonl_path = _write_jsonl(staging_dir, artist_slug, show_rows)
-
-        conn = get_snowflake_connection()
-        cur = conn.cursor()
-        try:
-            console.print(f"   • PUT {jsonl_path} to @testing.stage_raw_json", style="dim")
-            local_path = jsonl_path.as_posix()
-            cur.execute(f"PUT 'file://{local_path}' @testing.stage_raw_json AUTO_COMPRESS=FALSE OVERWRITE=TRUE")
-
-            console.print("   • COPY INTO testing.raw_shows from stage", style="dim")
-            stage_file_name = jsonl_path.name
-            cur.execute(
-                "COPY INTO testing.raw_shows (artist_id, artist_name, show_id, show_date, payload) "
-                "FROM (\n"
-                "  SELECT\n"
-                "    $1:artist_id::string,\n"
-                "    $1:artist_name::string,\n"
-                "    $1:show_id::string,\n"
-                "    TO_DATE($1:show_date::string, 'DD-MM-YYYY'),\n"
-                "    $1\n"
-                f"  FROM '@testing.stage_raw_json/{stage_file_name}' (FILE_FORMAT => testing.ff_json)\n"
-                ")"
-            )
-        finally:
-            cur.close()
-            conn.close()
-
-    console.print("\n✅ Completed COPY INTO for all artists", style="green")
-    return True
+    if load_to_snowflake:
+        ok = ingest_csv_to_snowflake(str(csv_path), "SHOWS_HIS")
+        console.print("❄️  Loaded to Snowflake SHOWS_HIS" if ok else "⚠️  Snowflake load failed", style=("green" if ok else "yellow"))
+        return ok
+    else:
+        console.print("ℹ️  LOAD_TO_SNOWFLAKE disabled; skipping load.", style="yellow")
+        return True
 
 
 if __name__ == "__main__":
-    ok = main()
+    # Default load to Snowflake unless explicitly disabled
+    load_sf = os.getenv("LOAD_TO_SNOWFLAKE", "true").lower() in {"1", "true", "yes"}
+    ok = main(load_to_snowflake=load_sf)
     raise SystemExit(0 if ok else 1)
 
 

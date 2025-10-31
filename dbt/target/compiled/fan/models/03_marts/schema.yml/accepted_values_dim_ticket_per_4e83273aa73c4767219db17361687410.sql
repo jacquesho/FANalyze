@@ -8,7 +8,7 @@ with all_values as (
         performance_rating as value_field,
         count(*) as n_records
 
-    from DB_T4.FAN_fan_marts.dim_ticket_performance
+    from DB_T4.FAN_marts.dim_ticket_performance
     group by performance_rating
 
 )

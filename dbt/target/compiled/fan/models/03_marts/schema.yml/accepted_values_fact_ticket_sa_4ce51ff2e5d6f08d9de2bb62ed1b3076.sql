@@ -8,7 +8,7 @@ with all_values as (
         demand_category as value_field,
         count(*) as n_records
 
-    from DB_T4.FAN_fan_marts.fact_ticket_sales
+    from DB_T4.FAN_marts.fact_ticket_sales
     group by demand_category
 
 )

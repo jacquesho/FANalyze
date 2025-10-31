@@ -8,7 +8,7 @@ with all_values as (
         daily_revenue_tier as value_field,
         count(*) as n_records
 
-    from DB_T4.FAN_fan_marts.fct_daily_ticket_summary
+    from DB_T4.FAN_marts.fct_daily_ticket_summary
     group by daily_revenue_tier
 
 )

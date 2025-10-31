@@ -2,7 +2,7 @@
 
 with meet_condition as(
   select *
-  from DB_T4.FAN_fan_staging.stg_ticket_sales
+  from DB_T4.FAN_staging.stg_ticket_sales
 ),
 
 validation_errors as (

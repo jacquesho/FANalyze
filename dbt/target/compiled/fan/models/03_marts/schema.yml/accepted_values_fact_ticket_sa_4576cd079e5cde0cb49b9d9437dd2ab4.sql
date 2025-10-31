@@ -8,7 +8,7 @@ with all_values as (
         time_to_show_category as value_field,
         count(*) as n_records
 
-    from DB_T4.FAN_fan_marts.fact_ticket_sales
+    from DB_T4.FAN_marts.fact_ticket_sales
     group by time_to_show_category
 
 )

@@ -8,34 +8,25 @@ docker-compose up -d
 
 ## Demo Run (copy-paste in order)
 
-### 1. Ensure shows_history.csv exists (or fetch from Setlist.fm API)
+### 1. Fetch data via setlistfm API to generate shows_history.csv
 ```bash
-# Skip if you already have data/raw/csv/shows_history.csv
-# Otherwise fetch from API first
-
-# Requires SETLISTFM_API_KEY in your environment
-uv run python -c "from scripts.data_collection.setlistfm_api import SetlistFMAPI; api=SetlistFMAPI(); data=api.fetch_all_artists_historical(); api.save_data_to_file(data, 'setlistfm_full_history')"
+uv run python scripts/export_setlistfm_history_to_csv.py
 ```
 
-### 2. Enrich history CSV with ticket sales data
-```bash
-uv run python scripts/enrich_history_from_setlistfm.py --input data/raw/csv/shows_history.csv --backup
-```
-
-### 3. Ingest both history + future to Snowflake
+### 2. Ingest both history + future to Snowflake
 ```bash
 uv run python scripts/ingest_csv_shows__snowflake.py
 ```
 
-### 4. Build dbt models
+### 3. Build dbt models
 ```bash
-dbt run
-dbt test
+uv run dbt run
+uv run dbt test
 ```
 
 ### 5. Stream ticket sales to Postgres (row-by-row)
 ```bash
-uv run python scripts/stream_to_postgres.py --duration 1 --speed 5
+uv run python scripts/stream_to_postgres.py
 ```
 
 ### 6. Sync Postgres → Snowflake
@@ -45,6 +36,6 @@ uv run python scripts/sync_streaming_tickets__postgres_to_snowflake.py
 
 ### 7. Incremental dbt update
 ```bash
-dbt run
-dbt test
+uv run dbt run --select 01_staging.stg_ticket_sales+ 03_marts.fact_ticket_sales 03_marts.dim_ticket_performance 03_marts.fct_daily_ticket_summary
+uv run dbt test
 ```

@@ -135,8 +135,21 @@ class SetlistFMAPI:
 
     # City-filtered helper removed per request to fetch full history for each artist.
     
-    def fetch_artist_setlists_incremental(self, artist: Artist, last_show_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
-        """Fetch setlists for an artist from a specific date onwards (incremental updates)"""
+    def fetch_artist_setlists_incremental(
+        self,
+        artist: Artist,
+        last_show_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        max_pages: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Fetch setlists for an artist from a specific date onwards (incremental updates)
+
+        Args:
+            artist: Artist configuration
+            last_show_date: fetch strictly AFTER this date
+            end_date: upper bound date (inclusive). Defaults to today if not provided
+            max_pages: optional hard cap on pages fetched to bound execution time
+        """
         all_shows = []
         page = 1
         seen_show_ids = set()  # Track show IDs to prevent duplicates
@@ -149,7 +162,7 @@ class SetlistFMAPI:
             start_date = last_show_date.date() + timedelta(days=1)
             console.print(f"📅 Fetching shows for {artist.name} from {start_date} onwards", style="blue")
         
-        end_date = datetime.now().date()
+        end_date = (end_date.date() if isinstance(end_date, datetime) else end_date) or datetime.now().date()
         
         console.print(f"🎵 Fetching incremental setlists for {artist.name} ({artist.musicbrainz_id})", style="blue")
         console.print(f"📅 Date range: {start_date} to {end_date}", style="cyan")
@@ -206,6 +219,11 @@ class SetlistFMAPI:
                 total_pages = math.ceil(total / items_per_page) if items_per_page else 1
                 console.print(f"📊 Total pages for {artist.name}: {total_pages} (Total items: {total})", style="green")
             
+            # Respect optional max_pages cap
+            if max_pages is not None and page >= max_pages:
+                console.print(f"⛔ Reached max_pages cap ({max_pages}); stopping", style="yellow")
+                break
+
             if page >= total_pages:
                 console.print(f"🏁 Reached last page ({page}/{total_pages}), stopping", style="green")
                 break
@@ -214,6 +232,78 @@ class SetlistFMAPI:
             time.sleep(self.config.rate_limit_delay)
         
         console.print(f"🎉 {artist.name}: {len(all_shows)} new shows collected", style="bold green")
+        return all_shows
+
+    def fetch_artist_setlists_window(
+        self,
+        artist: Artist,
+        since_date: datetime,
+        end_date: Optional[datetime] = None,
+        max_pages: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Fetch setlists within an explicit date window using the API's date range filter.
+
+        This avoids scanning full history when only a recent window is needed.
+        """
+        all_shows: List[Dict[str, Any]] = []
+        page = 1
+        total_pages = None
+
+        start_date = since_date.date()
+        end_date_val = (end_date.date() if isinstance(end_date, datetime) else end_date) or datetime.now().date()
+
+        start_date_str = start_date.strftime("%d-%m-%Y")
+        end_date_str = end_date_val.strftime("%d-%m-%Y")
+
+        console.print(
+            f"🎵 Fetching setlists for {artist.name} in window {start_date_str} to {end_date_str}",
+            style="blue",
+        )
+
+        while True:
+            url = self.config.get_artist_setlists_url(artist.musicbrainz_id, page)
+            url += f"&date={start_date_str}-{end_date_str}"
+
+            console.print(f"📄 Page {page}: {url}", style="cyan")
+
+            try:
+                response = self.make_api_request_with_retry(url)
+            except requests.RequestException as e:
+                console.print(f"❌ Request failed for {artist.name} page {page}: {e}", style="red")
+                break
+
+            if response.status_code != 200:
+                console.print(f"❌ Error fetching page {page} for {artist.name}: {response.status_code}", style="red")
+                break
+
+            data = response.json()
+            setlist_items = data.get("setlist", [])
+            if not setlist_items:
+                console.print(f"✅ No more setlists found on page {page}, completed", style="green")
+                break
+
+            all_shows.extend(setlist_items)
+            console.print(f"✅ Fetched {len(setlist_items)} shows from page {page} (total so far: {len(all_shows)})", style="green")
+
+            if total_pages is None:
+                items_per_page = int(data.get("itemsPerPage", 20))
+                total = int(data.get("total", 0))
+                total_pages = math.ceil(total / items_per_page) if items_per_page else 1
+                console.print(f"📊 Total pages (windowed) for {artist.name}: {total_pages} (Total items: {total})", style="green")
+
+            if max_pages is not None and page >= max_pages:
+                console.print(f"⛔ Reached max_pages cap ({max_pages}); stopping", style="yellow")
+                break
+
+            if page >= total_pages:
+                console.print(f"🏁 Reached last page ({page}/{total_pages}), stopping", style="green")
+                break
+
+            page += 1
+            console.print(f"⏳ Waiting {self.config.rate_limit_delay} seconds before next request...", style="yellow")
+            time.sleep(self.config.rate_limit_delay)
+
+        console.print(f"🎉 {artist.name}: {len(all_shows)} shows collected in window", style="bold green")
         return all_shows
     
     def fetch_all_artists_historical(self, artists: Optional[List[Artist]] = None) -> Dict[str, List[Dict[str, Any]]]:

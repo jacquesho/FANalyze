@@ -286,13 +286,16 @@ class TicketSalesStreamer:
         """Output a sale event in the specified format"""
         
         if self.output_format == 'jsonl':
-            print(json.dumps(sale_event))
+            print(json.dumps(sale_event), flush=True)
         elif self.output_format == 'console':
-            print(f"🎫 {sale_event['artist_name']} at {sale_event['venue_name']} - "
-                  f"{sale_event['tickets_sold']} tickets sold (${sale_event['revenue']:,.2f}) - "
-                  f"Total: {sale_event['cumulative_tickets_sold']}/{sale_event['venue_capacity']} "
-                  f"({sale_event['sales_rate']}%) - "
-                  f"Remaining: {sale_event['tickets_remaining']}")
+            print(
+                f"🎫 {sale_event['artist_name']} at {sale_event['venue_name']} - "
+                f"{sale_event['tickets_sold']} tickets sold (${sale_event['revenue']:,.2f}) - "
+                f"Total: {sale_event['cumulative_tickets_sold']}/{sale_event['venue_capacity']} "
+                f"({sale_event['sales_rate']}%) - "
+                f"Remaining: {sale_event['tickets_remaining']}",
+                flush=True,
+            )
         elif self.output_format == 'kafka':
             # TODO: Implement Kafka producer
             print(f"KAFKA: {json.dumps(sale_event)}")

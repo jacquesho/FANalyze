@@ -28,8 +28,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
               inclusive: true
       
       - name: revenue
@@ -37,8 +38,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       
       - name: demand_category
         description: "Categorized demand level based on sales rate"
@@ -56,8 +58,9 @@ models:
         description: "Revenue per ticket sold"
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
   
   - name: dim_ticket_performance
     description: "Dimension table with aggregated performance metrics per show"
@@ -83,16 +86,18 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       
       - name: final_revenue
         description: "Final revenue for this show"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       
       - name: performance_rating
         description: "Overall performance rating for the show"
@@ -124,8 +129,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true
+              arguments:
+                min_value: 0
+                inclusive: true
       
       - name: daily_revenue
         description: "Total revenue generated on this date"

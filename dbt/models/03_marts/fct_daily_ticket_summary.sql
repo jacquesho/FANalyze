@@ -3,7 +3,7 @@
 
 {{ config(
     materialized='table',
-    schema='fan_marts'
+    schema='marts'
 ) }}
 
 WITH daily_ticket_metrics AS (

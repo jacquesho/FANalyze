@@ -2,6 +2,8 @@
 """
 Generate realistic future concert data for FANalyze v2.0
 Creates simulated ticket sales data for upcoming shows through 2026
+Note: This script does NOT use Faker or external sources. It uses
+builtin Python randomness and curated in-file lists to synthesize shows.
 """
 
 import pandas as pd
@@ -14,7 +16,6 @@ import uuid
 np.random.seed(42)
 random.seed(42)
 
-# Artists to include (excluding BLACKPINK)
 ARTISTS = [
     'Metallica',
     'Beyoncé', 
@@ -60,16 +61,48 @@ ARTIST_TIERS = {
     'The Weeknd': {'tier': 'A-list', 'base_price': 200, 'price_range': '$60-$400'}
 }
 
+# Number of shows to generate per artist (balanced)
+NUM_SHOWS_PER_ARTIST = 10
+
 def generate_show_dates(start_date, end_date, num_shows):
-    """Generate random show dates between start and end date"""
-    dates = []
-    current = start_date
-    while len(dates) < num_shows and current <= end_date:
-        # Add 1-30 days randomly
-        current += timedelta(days=random.randint(1, 30))
-        if current <= end_date:
-            dates.append(current)
-    return dates
+    """Generate num_shows future dates between start and end, roughly uniform.
+
+    Ensures all returned dates are after "now" and before end_date, avoiding
+    downstream skipping so each artist gets the same number of shows.
+    """
+    # Work with date objects for simplicity
+    today = datetime.now().date()
+    window_start = max(start_date.date(), today + timedelta(days=1))
+    window_end = end_date.date()
+
+    if window_start >= window_end:
+        # Edge case: window exhausted; fall back to next num_shows days
+        window_start = today + timedelta(days=1)
+        window_end = window_start + timedelta(days=num_shows + 7)
+
+    total_days = (window_end - window_start).days
+    step = max(1, total_days // (num_shows + 1))
+
+    dates: list[datetime] = []
+    for i in range(1, num_shows + 1):
+        base_day = window_start + timedelta(days=i * step)
+        # Add small jitter (+/- up to 3 days) but keep in bounds
+        jitter = random.randint(-3, 3)
+        candidate = base_day + timedelta(days=jitter)
+        candidate = min(max(candidate, window_start), window_end)
+        # Convert to datetime at midnight
+        dates.append(datetime.combine(candidate, datetime.min.time()))
+
+    # Ensure uniqueness and sorted order
+    dates = sorted(list(dict.fromkeys(dates)))
+    # If de-dup reduced size, append incremental days to reach target
+    while len(dates) < num_shows:
+        extra_day = dates[-1].date() + timedelta(days=1)
+        if extra_day > window_end:
+            extra_day = window_end
+        dates.append(datetime.combine(extra_day, datetime.min.time()))
+
+    return dates[:num_shows]
 
 def simulate_ticket_sales(artist, venue_capacity, days_until_show, base_price):
     """Simulate realistic ticket sales based on artist popularity and time until show"""
@@ -112,20 +145,16 @@ def generate_future_concerts():
     end_date = datetime(2026, 12, 31)
     
     for artist in ARTISTS:
-        # Generate 3-8 shows per artist
-        num_shows = random.randint(3, 8)
+        # Generate a balanced number of shows per artist
+        num_shows = NUM_SHOWS_PER_ARTIST
         show_dates = generate_show_dates(start_date, end_date, num_shows)
         
         for i, show_date in enumerate(show_dates):
             # Select random venue
             venue = random.choice(VENUES)
             
-            # Calculate days until show
+            # Calculate days until show (dates are already in the future)
             days_until_show = (show_date - datetime.now()).days
-            
-            # Skip if show is in the past
-            if days_until_show < 0:
-                continue
                 
             # Get artist pricing info
             artist_info = ARTIST_TIERS[artist]
@@ -185,7 +214,7 @@ def main():
     df = df.sort_values('show_date')
     
     # Save to CSV
-    output_file = 'data/raw/csv/simulated_future_concerts_2025_2026.csv'
+    output_file = 'data/raw/csv/shows_future.csv'
     df.to_csv(output_file, index=False)
     
     print(f"✅ Generated {len(df)} future concerts")

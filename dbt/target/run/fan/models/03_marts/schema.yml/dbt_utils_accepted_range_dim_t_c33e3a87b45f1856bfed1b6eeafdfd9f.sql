@@ -10,7 +10,7 @@
 
 with meet_condition as(
   select *
-  from DB_T4.FAN_fan_marts.dim_ticket_performance
+  from DB_T4.FAN_marts.dim_ticket_performance
 ),
 
 validation_errors as (

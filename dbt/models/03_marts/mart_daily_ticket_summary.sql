@@ -1,5 +1,5 @@
 -- Marts layer: Daily aggregated ticket sales summary
--- File: models/03_marts/fct_daily_ticket_summary.sql
+-- File: models/03_marts/mart_daily_ticket_summary.sql
 
 {{ config(
     materialized='table',
@@ -101,3 +101,4 @@ SELECT
     
 FROM daily_ticket_metrics
 ORDER BY sale_date DESC, daily_revenue DESC
+

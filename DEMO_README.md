@@ -1,16 +1,10 @@
 # FANalyze 2.0 Demo - Quick Commands
 
-## Setup (one-time)
-```bash
-cd FANalyze_v2.0
-docker-compose up -d
-```
-
-## Demo Run (copy-paste in order)
-
 ### 1. Fetch data via setlistfm API to generate shows_history.csv
 ```bash
 uv run python scripts/export_setlistfm_history_to_csv.py
+
+uv run python scripts/generate_future_concerts.py
 ```
 
 ### 2. Ingest both history + future to Snowflake

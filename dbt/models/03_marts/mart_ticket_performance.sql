@@ -1,5 +1,5 @@
 -- Marts layer: Dimension table for ticket performance metrics
--- File: models/03_marts/dim_ticket_performance.sql
+-- File: models/03_marts/mart_ticket_performance.sql
 
 {{ config(
     materialized='table',
@@ -102,3 +102,4 @@ SELECT
     
 FROM show_performance
 ORDER BY show_date DESC, final_revenue DESC
+

@@ -35,7 +35,7 @@ class ArtistConfig:
                 name="Metallica",
                 musicbrainz_id="65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab",
                 genre="Heavy Metal, Thrash Metal, Speed Metal, Hard Rock",
-                active=True,
+                active=False,
                 notes="Primary artist from v1.0"
             ),
             
@@ -72,7 +72,7 @@ class ArtistConfig:
                 name="The Weeknd",
                 musicbrainz_id="c8b03190-306c-4120-bb0b-6f2ebfc06ea9",
                 genre="R&B, Pop, Alternative R&B, Synth-pop",
-                active=False,
+                active=True,
                 notes="Canadian R&B and pop artist"
             ),
             Artist(

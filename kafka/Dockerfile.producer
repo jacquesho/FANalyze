@@ -1,0 +1,32 @@
+# Dockerfile for Ticket Producer
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency files first (for better caching)
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen
+
+# Copy application code
+COPY kafka/ ./kafka/
+COPY config/ ./config/
+
+# Copy secrets (will fail if missing, but that's ok - can be mounted as volume)
+COPY .secrets/ ./.secrets/
+
+# Use internal network for Docker Compose
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+# Run producer
+CMD ["uv", "run", "python", "kafka/producers/ticket_producer.py"]
+

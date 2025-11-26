@@ -1,0 +1,36 @@
+# Use official Apache Airflow image (3.0.6 with Python 3.12)
+FROM apache/airflow:3.0.6-python3.12
+
+# Set working directory
+WORKDIR /opt/airflow
+
+# Install system dependencies
+USER root
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (faster Python package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Switch back to airflow user
+USER airflow
+
+# Copy dependency files (pyproject.toml and uv.lock for reproducible builds)
+# Copy from project root so we can install project dependencies
+COPY --chown=airflow:root pyproject.toml uv.lock ./
+
+# Install Python dependencies using uv pip (installs into system Python that Airflow uses)
+# Install project dependencies + Airflow optional dependencies
+# Using '.' installs the project and all its dependencies into system Python
+# uv pip is faster and more reliable than standard pip
+RUN uv pip install --system --no-cache ".[airflow]"
+
+# Add dbt to PATH (dbt gets installed via pyproject.toml dependencies)
+ENV PATH="/home/airflow/.local/bin:${PATH}"
+
+# Set working directory back
+WORKDIR /opt/airflow
+

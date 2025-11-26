@@ -1,0 +1,135 @@
+name: fanalyze_v2_0_kafka
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - "9092:9092"
+      - "29092:29092" # Host access port for UV run
+    environment:
+      # Timezone Configuration
+      TZ: Asia/Bangkok
+      # Configure listeners for both docker and host communication
+      KAFKA_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT"
+
+      # Settings required for KRaft mode (no ZooKeeper)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # Listener to use for broker-to-broker communication
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      # Required for a single node cluster
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Extras
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      CLUSTER_ID: "xUl_ExjdQaSZB9OGK7wHYg"
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1",
+        ]
+      interval: 30s
+      retries: 10
+      start_period: 60s
+      timeout: 10s
+    networks:
+      - kafka_network
+    restart: unless-stopped
+
+  # Kafka UI for monitoring and debugging (optional)
+  kafdrop:
+    image: obsidiandynamics/kafdrop:4.0.0
+    platform: linux/amd64  # for Apple Silicon compatibility
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      JVM_OPTS: "-Xms32M -Xmx64M"
+      SERVER_SERVLET_CONTEXTPATH: "/"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - kafka_network
+    restart: unless-stopped
+    profiles:
+      - ui  # Only start with --profile ui
+
+  # Application Services (start these separately for testing/demos)
+  ticket-producer:
+    build:
+      context: .
+      dockerfile: kafka/Dockerfile.producer
+    environment:
+      # Timezone Configuration
+      - TZ=Asia/Bangkok
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=${KAFKA_TOPIC:-ticket_sales}
+      - POSTGRES_HOST=${POSTGRES_HOST:-kafka-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_KEYPAIR_PATH=${SNOWFLAKE_KEYPAIR_PATH:-.secrets/rsa_key.p8}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - kafka_network
+    restart: unless-stopped
+    profiles:
+      - app  # Only start with --profile app
+
+  postgres-consumer:
+    build:
+      context: .
+      dockerfile: kafka/Dockerfile.consumer
+    environment:
+      # Timezone Configuration
+      - TZ=Asia/Bangkok
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=${KAFKA_TOPIC:-ticket_sales}
+      - KAFKA_GROUP_ID=${KAFKA_GROUP_ID:-ticket-sales-consumer-group}
+      # Explicitly set to Docker service name (overrides .env for Docker containers)
+      - POSTGRES_HOST=kafka-postgres
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      # Note: kafka-postgres is in docker-compose.yaml, not this file
+      # Make sure PostgreSQL is running before starting consumer
+    networks:
+      - kafka_network
+    restart: unless-stopped
+    profiles:
+      - app  # Only start with --profile app
+
+volumes:
+  kafka_data:
+    driver: local
+
+networks:
+  kafka_network:
+    external: true
+    name: fa-dae2-capstone_kafka_network
+

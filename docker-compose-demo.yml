@@ -5,6 +5,8 @@ services:
     image: postgres:15
     container_name: fanalyze_postgres
     environment:
+      # Timezone Configuration
+      TZ: Asia/Bangkok
       POSTGRES_DB: fanalyze
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password

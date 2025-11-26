@@ -15,11 +15,17 @@ dependencies = [
     "cryptography>=45.0.7",
     "psycopg2-binary>=2.9.11",
     "dbterd>=1.21.0",
+    "confluent-kafka>=2.3.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.4",
+]
+airflow = [
+    "apache-airflow-providers-postgres>=5.10.0",
+    "apache-airflow-providers-snowflake>=5.0.0",
+    "requests>=2.31.0",
 ]
 
 [tool.ruff]

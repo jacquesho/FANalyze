@@ -1,0 +1,79 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+venv/
+env/
+ENV/
+.venv
+.Python
+*$py.class
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# --- Jupyter Notebook ---
+.ipynb_checkpoints/
+
+# --- VS Code ---
+.vscode/
+*.code-workspace
+
+# --- IDE ---
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
+# --- macOS ---
+.DS_Store
+
+# --- System files ---
+Thumbs.db
+desktop.ini
+
+# --- Data files ---
+*.sqlite
+*.db
+*.csv
+*.json
+*.parquet
+*.zip
+
+# --- Logs ---
+*.log
+
+# --- Secrets / Keys ---
+.secrets/
+*.pem
+*.key
+*.crt
+.env
+.env.*
+*.secrets.yml
+
+# --- dbt ---
+dbt_packages/
+dbt_modules/
+dbt/logs/
+dbt/target/
+~/.dbt/
+profiles.yml
+
+# --- Airflow ---
+airflow/logs/
+airflow/*.log
+
+# --- Python package info ---
+*.egg-info/
+FANalyze_2.0.egg-info/

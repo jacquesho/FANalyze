@@ -28,6 +28,16 @@ airflow = [
     "requests>=2.31.0",
 ]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# This project doesn't have installable Python packages, only dependencies
+# Set packages to empty to prevent setuptools from auto-discovering directories
+packages = []
+py-modules = []
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

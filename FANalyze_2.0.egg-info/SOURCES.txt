@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+FANalyze_2.0.egg-info/PKG-INFO
+FANalyze_2.0.egg-info/SOURCES.txt
+FANalyze_2.0.egg-info/dependency_links.txt
+FANalyze_2.0.egg-info/requires.txt
+FANalyze_2.0.egg-info/top_level.txt

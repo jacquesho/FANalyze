@@ -26,10 +26,10 @@ models:
     +materialized: table
     "01_staging":
       +materialized: view
-      +schema: "staging"
+      +schema: "STAGING"
     "02_intermediate":
       +materialized: table
-      +schema: "intermediate"
+      +schema: "INTERMEDIATE"
     "03_marts":
       +materialized: table
-      +schema: "marts"
+      +schema: "MARTS"

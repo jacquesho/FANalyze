@@ -13,7 +13,15 @@ from datetime import datetime
 import logging
 
 # Add the config directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'config'))
+# Try project_config first (when running in Airflow), then fall back to ../config (local development)
+config_paths = [
+    '/opt/airflow/project_config',  # Mounted in Airflow container
+    os.path.join(os.path.dirname(__file__), '..', 'config')  # Local development
+]
+for config_path in config_paths:
+    if os.path.exists(config_path):
+        sys.path.insert(0, config_path)
+        break
 
 try:
     from api_config import get_snowflake_connection

@@ -99,11 +99,35 @@ api_config = APIConfigManager()
 def get_snowflake_connection():
     """Get Snowflake connection using keypair authentication"""
     try:
-        # Get keypair file path
+        # Get keypair file path - handle both absolute and relative paths
         keypair_path = os.getenv('SNOWFLAKE_KEYPAIR_PATH', '.secrets/rsa_key.p8')
-        private_key_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), keypair_path)
+        
+        # If path is absolute, use it directly; otherwise construct relative to project root
+        if os.path.isabs(keypair_path):
+            private_key_path = keypair_path
+        else:
+            # Try to get project root - check if we're in Airflow container first
+            if os.path.exists('/opt/airflow/.secrets'):
+                # Running in Airflow container
+                private_key_path = os.path.join('/opt/airflow', keypair_path.lstrip('./'))
+            elif __file__:
+                # Running locally - go up from config/ directory to project root
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                private_key_path = os.path.join(project_root, keypair_path)
+            else:
+                # Fallback: try current working directory
+                private_key_path = os.path.join(os.getcwd(), keypair_path)
+        
+        # Validate required environment variables
+        required_vars = ['SNOWFLAKE_USER', 'SNOWFLAKE_ACCOUNT', 'SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_DATABASE']
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+        if missing_vars:
+            raise Exception(f"Missing required Snowflake environment variables: {', '.join(missing_vars)}")
         
         # Read and convert private key from PKCS#8 to PEM format
+        if not os.path.exists(private_key_path):
+            raise Exception(f"Snowflake private key file not found at: {private_key_path}")
+        
         with open(private_key_path, 'rb') as key_file:
             private_key_pem = key_file.read()
         

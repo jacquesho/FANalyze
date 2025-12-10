@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sync streaming ticket sales data from PostgreSQL staging.ticket_sales to Snowflake fan_raw.raw_tickets
+Sync streaming ticket sales data from PostgreSQL staging.ticket_sales to Snowflake FAN_RAW.raw_tickets
 Handles incremental sync with status tracking for real-time streaming data
 """
 
@@ -15,7 +15,12 @@ import logging
 from pathlib import Path
 
 # Add config directory to path
-sys.path.append(str(Path(__file__).parent.parent / "config"))
+# When running in Airflow container, config is mounted at /opt/airflow/project_config
+if os.path.exists('/opt/airflow/project_config'):
+    sys.path.append('/opt/airflow/project_config')
+else:
+    # Fallback for local development
+    sys.path.append(str(Path(__file__).parent.parent / "config"))
 from api_config import get_snowflake_connection
 
 # Set up logging
@@ -23,10 +28,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def get_postgres_connection():
-    """Get Postgres connection using ingest user credentials"""
+    """Get Postgres connection using ingest service user credentials"""
     try:
         conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST', 'localhost'),
+            host=os.getenv('POSTGRES_HOST', 'kafka-postgres'),
             port=os.getenv('POSTGRES_PORT', '5432'),
             database=os.getenv('POSTGRES_DB', 'postgres'),
             user=os.getenv('POSTGRES_USER_INGEST', 'user_fanalyze_ingest'),
@@ -71,6 +76,9 @@ def add_sync_columns_if_needed(conn):
         
     except Exception as e:
         logger.error(f"❌ Error adding sync columns: {e}")
+        # If it's a permission error, provide helpful message
+        if 'permission denied' in str(e).lower() or 'must be owner' in str(e).lower():
+            logger.error("💡 Tip: Run 'GRANT ALL PRIVILEGES ON TABLE staging.ticket_sales TO service;' as postgres admin")
         raise
     finally:
         cursor.close()
@@ -116,12 +124,12 @@ def get_pending_records(conn):
         cursor.close()
 
 def create_snowflake_table_if_needed(snowflake_conn):
-    """Create fan_raw.raw_tickets table in Snowflake if it doesn't exist"""
+    """Create FAN_RAW.raw_tickets table in Snowflake if it doesn't exist"""
     
-    create_schema_sql = "CREATE SCHEMA IF NOT EXISTS fan_raw;"
+    create_schema_sql = "CREATE SCHEMA IF NOT EXISTS FAN_RAW;"
     
     create_table_sql = """
-    CREATE TABLE IF NOT EXISTS fan_raw.raw_tickets (
+    CREATE TABLE IF NOT EXISTS FAN_RAW.raw_tickets (
         id INTEGER NOT NULL,
         timestamp TIMESTAMP_TZ NOT NULL,
         show_id VARCHAR(255) NOT NULL,
@@ -149,12 +157,12 @@ def create_snowflake_table_if_needed(snowflake_conn):
     try:
         # Create schema first
         cursor.execute(create_schema_sql)
-        logger.info("✅ Created fan_raw schema")
+        logger.info("✅ Created FAN_RAW schema")
         
         # Create table
         cursor.execute(create_table_sql)
         snowflake_conn.commit()
-        logger.info("✅ Snowflake fan_raw.raw_tickets table created/verified")
+        logger.info("✅ Snowflake FAN_RAW.raw_tickets table created/verified")
     except Exception as e:
         logger.error(f"❌ Error creating Snowflake table: {e}")
         raise
@@ -162,7 +170,7 @@ def create_snowflake_table_if_needed(snowflake_conn):
         cursor.close()
 
 def sync_records_to_snowflake(snowflake_conn, records):
-    """Sync records from PostgreSQL staging.ticket_sales to Snowflake fan_raw.raw_tickets"""
+    """Sync records from PostgreSQL staging.ticket_sales to Snowflake FAN_RAW.raw_tickets"""
     
     if not records:
         logger.info("📊 No records to sync")
@@ -197,7 +205,7 @@ def sync_records_to_snowflake(snowflake_conn, records):
         
         # Insert data in Snowflake
         insert_sql = """
-        INSERT INTO fan_raw.raw_tickets 
+        INSERT INTO FAN_RAW.raw_tickets 
         (id, timestamp, show_id, artist_name, venue_name, show_date, city_name, state_code,
          tickets_sold, cumulative_tickets_sold, revenue, cumulative_revenue, venue_capacity,
          sales_rate, days_until_show, artist_tier, average_ticket_price, created_at, synced_at)
@@ -207,7 +215,7 @@ def sync_records_to_snowflake(snowflake_conn, records):
         cursor.executemany(insert_sql, data_tuples)
         snowflake_conn.commit()
         
-        logger.info(f"✅ Successfully synced {len(records)} records to Snowflake fan_raw.raw_tickets")
+        logger.info(f"✅ Successfully synced {len(records)} records to Snowflake FAN_RAW.raw_tickets")
         return True
         
     except Exception as e:
@@ -274,7 +282,7 @@ def main():
         create_snowflake_table_if_needed(snowflake_conn)
         
         # Sync records to Snowflake
-        logger.info("📤 Syncing records to Snowflake fan_raw.raw_tickets...")
+        logger.info("📤 Syncing records to Snowflake FAN_RAW.raw_tickets...")
         sync_success = sync_records_to_snowflake(snowflake_conn, pending_records)
         
         if sync_success:
@@ -283,7 +291,7 @@ def main():
             update_sync_status(postgres_conn, pending_records, 'synced')
             
             logger.info("🎉 Sync completed successfully!")
-            logger.info(f"📊 Synced {len(pending_records)} records from staging.ticket_sales to fan_raw.raw_tickets")
+            logger.info(f"📊 Synced {len(pending_records)} records from staging.ticket_sales to FAN_RAW.raw_tickets")
         else:
             # Mark records as failed
             update_sync_status(postgres_conn, pending_records, 'failed')

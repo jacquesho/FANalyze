@@ -15,18 +15,23 @@ RUN apt-get update && apt-get install -y \
 # Install uv (faster Python package manager)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Switch back to airflow user
-USER airflow
-
 # Copy dependency files (pyproject.toml and uv.lock for reproducible builds)
-# Copy from project root so we can install project dependencies
-COPY --chown=airflow:root pyproject.toml uv.lock ./
+# Copy to a temporary directory to avoid conflicts with Airflow directories
+WORKDIR /tmp/build
+COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies using uv pip (installs into system Python that Airflow uses)
 # Install project dependencies + Airflow optional dependencies
 # Using '.' installs the project and all its dependencies into system Python
 # uv pip is faster and more reliable than standard pip
+# Must run as root to install into system Python (/usr/local/lib/python3.12/site-packages)
 RUN uv pip install --system --no-cache ".[airflow]"
+
+# Clean up build directory
+RUN rm -rf /tmp/build
+
+# Switch back to airflow user (after installing packages as root)
+USER airflow
 
 # Add dbt to PATH (dbt gets installed via pyproject.toml dependencies)
 ENV PATH="/home/airflow/.local/bin:${PATH}"

@@ -15,6 +15,15 @@ Requires-Dist: cryptography>=45.0.7
 Requires-Dist: psycopg2-binary>=2.9.11
 Requires-Dist: dbterd>=1.21.0
 Requires-Dist: confluent-kafka>=2.3.0
+Requires-Dist: pdfplumber>=0.11.0
+Requires-Dist: tiktoken>=0.8.0
+Requires-Dist: langchain-text-splitters>=0.3.0
+Requires-Dist: pinecone>=7.3.0
+Requires-Dist: streamlit>=1.52.2
+Requires-Dist: langchain-core>=1.2.5
+Requires-Dist: langchain-openai>=1.1.6
+Requires-Dist: langgraph>=1.0.5
+Requires-Dist: langgraph-checkpoint-postgres>=3.0.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8.4; extra == "dev"
 Provides-Extra: airflow

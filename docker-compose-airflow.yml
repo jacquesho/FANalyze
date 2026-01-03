@@ -50,7 +50,7 @@ x-airflow-common: &airflow-common
     - ./dbt:/opt/airflow/dbt
     - ./.dbt:/opt/airflow/.dbt
     - ./.secrets:/opt/airflow/.secrets
-    - ./scripts:/opt/airflow/scripts
+    - ./airflow/scripts:/opt/airflow/scripts
     - ./config:/opt/airflow/project_config
     - ./data:/opt/airflow/data
     - ./kafka:/opt/airflow/kafka

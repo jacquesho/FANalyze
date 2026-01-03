@@ -10,3 +10,17 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA staging TO service;
 -- Display success
 SELECT 'Permissions granted on ticket_sales table to service user' AS status;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

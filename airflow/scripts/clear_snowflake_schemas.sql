@@ -20,3 +20,17 @@ DROP SCHEMA IF EXISTS FAN_MARTS CASCADE;
 -- Note: FAN_RAW schema and tables will be recreated by the ingestion script
 -- The dbt schemas will be recreated by dbt run
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

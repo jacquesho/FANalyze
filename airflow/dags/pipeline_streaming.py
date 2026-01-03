@@ -20,20 +20,20 @@ def get_dbt_snowflake_env_vars():
         "SNOWFLAKE_DATABASE": "{{ conn.snowflake_default.extra_dejson.database }}",
         "SNOWFLAKE_SCHEMA": "{{ conn.snowflake_default.schema }}",
         "SNOWFLAKE_PRIVATE_KEY_FILE_PATH": "/opt/airflow/.secrets/rsa_key.p8",
-        "DBT_PROFILES_DIR": f"{os.environ.get('AIRFLOW_HOME', '/opt/airflow')}/.dbt",
-        "DBT_PROJECT_DIR": f"{os.environ.get('AIRFLOW_HOME', '/opt/airflow')}/dbt",
-        "PATH": "/home/airflow/.local/bin:" + os.environ.get("PATH", ""),
+        "DBT_PROFILES_DIR": f"{os.environ['AIRFLOW_HOME']}/.dbt",
+        "DBT_PROJECT_DIR": f"{os.environ['AIRFLOW_HOME']}/dbt",
+        "PATH": "/home/airflow/.local/bin:" + os.environ["PATH"],
     }
 
 
 def get_postgres_env_vars():
     """Get PostgreSQL environment variables for service user (INGEST credentials)"""
     return {
-        "POSTGRES_HOST": os.environ.get("POSTGRES_HOST", "kafka-postgres"),
-        "POSTGRES_PORT": os.environ.get("POSTGRES_PORT", "5432"),
-        "POSTGRES_DB": os.environ.get("POSTGRES_DB", "postgres"),
-        "POSTGRES_USER_INGEST": os.environ.get("POSTGRES_USER_INGEST", "user_fanalyze_ingest"),
-        "POSTGRES_PASSWORD_INGEST": os.environ.get("POSTGRES_PASSWORD_INGEST", "fanalyze_ingest_password"),
+        "POSTGRES_HOST": os.environ["POSTGRES_HOST"],
+        "POSTGRES_PORT": os.environ["POSTGRES_PORT"],
+        "POSTGRES_DB": os.environ["POSTGRES_DB"],
+        "POSTGRES_USER_INGEST": os.environ["POSTGRES_USER_INGEST"],
+        "POSTGRES_PASSWORD_INGEST": os.environ["POSTGRES_PASSWORD_INGEST"],
     }
 
 
@@ -85,11 +85,11 @@ import psycopg
 import os
 try:
     conn = psycopg.connect(
-        host=os.getenv('POSTGRES_HOST', 'kafka-postgres'),
-        port=os.getenv('POSTGRES_PORT', '5432'),
-        dbname=os.getenv('POSTGRES_DB', 'postgres'),
-        user=os.getenv('POSTGRES_USER', 'postgres'),
-        password=os.getenv('POSTGRES_PASSWORD', 'postgres')
+        host=os.environ['POSTGRES_HOST'],
+        port=os.environ['POSTGRES_PORT'],
+        dbname=os.environ['POSTGRES_DB'],
+        user=os.environ['POSTGRES_USER'],
+        password=os.environ['POSTGRES_PASSWORD']
     )
     cursor = conn.cursor()
     cursor.execute('SELECT COUNT(*) FROM staging.ticket_sales WHERE timestamp > NOW() - INTERVAL \\'15 minutes\\'')
@@ -110,7 +110,7 @@ except Exception as e:
         """
         return """
         cd /opt/airflow && \
-        python -m scripts.sync_streaming_tickets__postgres_to_snowflake
+        python scripts/sync_streaming_tickets__postgres_to_snowflake.py
         """
 
     @task.bash(env={**get_dbt_snowflake_env_vars()})

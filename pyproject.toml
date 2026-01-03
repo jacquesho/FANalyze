@@ -16,6 +16,15 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "dbterd>=1.21.0",
     "confluent-kafka>=2.3.0",
+    "pdfplumber>=0.11.0",
+    "tiktoken>=0.8.0",
+    "langchain-text-splitters>=0.3.0",
+    "pinecone>=7.3.0",
+    "streamlit>=1.52.2",
+    "langchain-core>=1.2.5",
+    "langchain-openai>=1.1.6",
+    "langgraph>=1.0.5",
+    "langgraph-checkpoint-postgres>=3.0.2",
 ]
 
 [project.optional-dependencies]

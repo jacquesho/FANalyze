@@ -83,10 +83,21 @@ def create_table_if_not_exists(conn, table_name, df):
     has_ingested_at = False
     for col, dtype in df.dtypes.items():
         col_upper = col.upper()
+        col_lower = col.lower()
         if col_upper == "INGESTED_AT":
             has_ingested_at = True
+
         if dtype == "object":
-            if "date" in col.lower():
+            # Check for timestamp columns (updated, created, timestamp, _at suffix)
+            if (
+                "updated" in col_lower
+                or "created" in col_lower
+                or "timestamp" in col_lower
+                or col_lower.endswith("_at")
+                or col_lower == "collected_at"
+            ):
+                columns.append(f'"{col_upper}" TIMESTAMP_NTZ')
+            elif "date" in col_lower and "str" not in col_lower:
                 columns.append(f'"{col_upper}" DATE')
             else:
                 columns.append(f'"{col_upper}" VARCHAR(16777216)')
@@ -164,7 +175,18 @@ def load_csv_to_snowflake(csv_path, table_name):
                 if pd.isna(val):
                     row_data.append(None)
                 else:
-                    row_data.append(str(val))
+                    col_lower = col.lower()
+                    # Keep timestamp strings as-is (Snowflake will parse them)
+                    if (
+                        "updated" in col_lower
+                        or "created" in col_lower
+                        or "timestamp" in col_lower
+                        or col_lower.endswith("_at")
+                        or col_lower == "collected_at"
+                    ):
+                        row_data.append(str(val))
+                    else:
+                        row_data.append(str(val))
             data_to_insert.append(tuple(row_data))
 
         # Build INSERT statement

@@ -87,8 +87,6 @@ SELECT
     END AS venue_utilization_pct,
 
     -- Sales velocity calculation using custom macro
-    {{
-        calculate_sales_velocity('tickets_sold_clean', 'days_until_show')
-    }} AS sales_velocity_per_day
+    {{ calculate_sales_velocity('tickets_sold_clean', 'days_until_show') }} AS sales_velocity_per_day
 
 FROM cleaned_ticket_sales

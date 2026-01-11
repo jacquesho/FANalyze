@@ -104,7 +104,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -120,7 +120,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -136,13 +136,13 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
 
-      - name: Run dbt build
-        run: uv run dbt build -t ci --project-dir dbt
+      - name: Run dbt tests
+        run: uv run dbt test -t ci --project-dir dbt
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -152,7 +152,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci

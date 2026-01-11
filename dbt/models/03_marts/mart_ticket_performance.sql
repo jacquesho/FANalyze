@@ -32,11 +32,7 @@ WITH show_performance AS (
         MAX(days_until_show) AS days_until_show,
 
         -- Performance calculations using custom macro
-        {{
-            calculate_sales_velocity(
-                'SUM(tickets_sold)', 'MAX(days_until_show)'
-            )
-        }} AS overall_sales_velocity,
+        {{ calculate_sales_velocity('SUM(tickets_sold)', 'MAX(days_until_show)') }} AS overall_sales_velocity,
 
         -- Demand analysis
         MAX(CASE WHEN demand_category = 'High Demand' THEN 1 ELSE 0 END) AS had_high_demand,
@@ -44,8 +40,8 @@ WITH show_performance AS (
 
         -- Revenue metrics
         CASE
-            WHEN SUM(tickets_sold) > 0 THEN
-                ROUND(SUM(revenue) / SUM(tickets_sold), 2)
+            WHEN SUM(tickets_sold) > 0 THEN ROUND(SUM(revenue) / SUM(tickets_sold), 2)
+            ELSE NULL
         END AS avg_revenue_per_ticket
 
     FROM {{ ref('fact_ticket_sales') }}
@@ -106,3 +102,6 @@ SELECT
 
 FROM show_performance
 ORDER BY show_date DESC, final_revenue DESC
+
+
+

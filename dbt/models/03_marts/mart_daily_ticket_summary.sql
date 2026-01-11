@@ -27,8 +27,8 @@ WITH daily_ticket_metrics AS (
 
         -- Revenue metrics
         CASE
-            WHEN SUM(tickets_sold) > 0 THEN
-                ROUND(SUM(revenue) / SUM(tickets_sold), 2)
+            WHEN SUM(tickets_sold) > 0 THEN ROUND(SUM(revenue) / SUM(tickets_sold), 2)
+            ELSE NULL
         END AS avg_daily_revenue_per_ticket,
 
         -- Demand analysis
@@ -64,10 +64,12 @@ SELECT
     ROUND(avg_daily_venue_utilization, 2) AS avg_daily_venue_utilization,
     ROUND(avg_daily_sales_velocity, 2) AS avg_daily_sales_velocity,
     avg_daily_revenue_per_ticket,
-    -- Demand distribution
-    high_demand_events,
-    medium_demand_events,
-    low_demand_events,
+
+        -- Demand distribution
+        high_demand_events,
+        medium_demand_events,
+        low_demand_events,
+
     -- Demand percentage
     ROUND((high_demand_events::FLOAT / daily_sales_events::FLOAT) * 100, 2) AS high_demand_pct,
     ROUND((medium_demand_events::FLOAT / daily_sales_events::FLOAT) * 100, 2) AS medium_demand_pct,
@@ -99,3 +101,6 @@ SELECT
 
 FROM daily_ticket_metrics
 ORDER BY sale_date DESC, daily_revenue DESC
+
+
+

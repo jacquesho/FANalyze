@@ -26,7 +26,10 @@ with show_metrics as (
             when venue_capacity > 0 then
                 round((tickets_sold::float / venue_capacity) * 100, 2)
         end as calculated_attendance_rate,
-        tickets_sold >= venue_capacity as calculated_sellout,
+        case
+            when tickets_sold >= venue_capacity then true
+            else false
+        end as calculated_sellout,
         -- Revenue per ticket
         case
             when tickets_sold > 0 then round(revenue / tickets_sold, 2)

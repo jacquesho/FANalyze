@@ -80,8 +80,11 @@ def create_table_if_not_exists(conn, table_name, df):
 
     # Generate CREATE TABLE statement based on DataFrame
     columns = []
+    has_ingested_at = False
     for col, dtype in df.dtypes.items():
         col_upper = col.upper()
+        if col_upper == "INGESTED_AT":
+            has_ingested_at = True
         if dtype == "object":
             if "date" in col.lower():
                 columns.append(f'"{col_upper}" DATE')
@@ -94,8 +97,9 @@ def create_table_if_not_exists(conn, table_name, df):
         else:
             columns.append(f'"{col_upper}" VARCHAR(16777216)')
 
-    # Add INGESTED_AT column
-    columns.append('"INGESTED_AT" TIMESTAMP_NTZ')
+    # Add INGESTED_AT column only if it doesn't exist
+    if not has_ingested_at:
+        columns.append('"INGESTED_AT" TIMESTAMP_NTZ')
 
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS FAN_CI_RAW.{table_name} (
@@ -140,8 +144,9 @@ def load_csv_to_snowflake(csv_path, table_name):
         # Create table if it doesn't exist
         create_table_if_not_exists(conn, table_name, df)
 
-        # Add ingested_at timestamp
-        df["INGESTED_AT"] = datetime.now()
+        # Add ingested_at timestamp only if column doesn't exist
+        if "INGESTED_AT" not in df.columns:
+            df["INGESTED_AT"] = datetime.now()
 
         # Clear existing data
         cursor = conn.cursor()
@@ -191,10 +196,7 @@ def main():
     print("=" * 60)
 
     # CSV file mappings
-    csv_files = {
-        "shows_history.csv": "SHOWS_HIS",
-        "shows_future.csv": "SHOWS_FUTURE"
-    }
+    csv_files = {"shows_history.csv": "SHOWS_HIS", "shows_future.csv": "SHOWS_FUTURE"}
 
     success_count = 0
     total_count = len(csv_files)

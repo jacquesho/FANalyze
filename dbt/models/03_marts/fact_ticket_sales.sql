@@ -51,14 +51,15 @@ WITH ticket_sales_staging AS (
         -- Revenue per ticket calculation
         CASE
             WHEN tickets_sold > 0 THEN ROUND(revenue / tickets_sold, 2)
-            ELSE NULL
         END AS revenue_per_ticket
 
-    FROM {{ ref('int_ticket_sales_dedup') }}
+    FROM {{ ref('int_ticket_sales_dedup') }} AS ts
 
     {% if is_incremental() %}
         -- Only process new records since last run (with safe fallback on first load)
-        WHERE timestamp >= COALESCE((SELECT MAX(timestamp) FROM {{ this }}), '1970-01-01'::timestamp)
+        WHERE ts.timestamp >= COALESCE(
+            (SELECT MAX(timestamp) FROM {{ this }}), '1970-01-01'::timestamp
+        )
     {% endif %}
 )
 

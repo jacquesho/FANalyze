@@ -27,9 +27,10 @@ cleaned_data as (
         source
 
     from source_data
-    where show_date is not null
-      and artist_name is not null
-      and venue_name is not null
+    where
+        show_date is not null
+        and artist_name is not null
+        and venue_name is not null
 )
 
 select * from cleaned_data

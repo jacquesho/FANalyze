@@ -19,12 +19,15 @@ with artist_metrics as (
 
         -- Market share
         sum(a.total_revenue) over () as total_market_revenue,
-        round((a.total_revenue / sum(a.total_revenue) over ()) * 100, 2) as revenue_market_share,
-
+        round(
+            (a.total_revenue / sum(a.total_revenue) over ()) * 100, 2
+        ) as revenue_market_share,
         sum(a.total_tickets_sold) over () as total_market_tickets,
-        round((a.total_tickets_sold / sum(a.total_tickets_sold) over ()) * 100, 2) as tickets_market_share
-
-    from {{ ref('dim_artists') }} a
+        round(
+            (a.total_tickets_sold / sum(a.total_tickets_sold) over ()) * 100,
+            2
+        ) as tickets_market_share
+    from {{ ref('dim_artists') }} as a
 ),
 
 venue_diversity as (

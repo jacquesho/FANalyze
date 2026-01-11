@@ -16,17 +16,32 @@ with show_lifecycle as (
 
         -- Lifecycle tracking
         case
-            when fs.show_date < current_date and fs.show_status = 'Upcoming' then 'Needs Status Update'
-            when fs.show_date >= current_date and fs.show_status = 'Historical' then 'Needs Status Update'
+            when
+                fs.show_date < current_date
+                and fs.show_status = 'Upcoming'
+            then
+                'Needs Status Update'
+            when
+                fs.show_date >= current_date
+                and fs.show_status = 'Historical'
+            then
+                'Needs Status Update'
             else 'Status Current'
         end as status_consistency,
 
         -- Data completeness for upcoming shows
         case
-            when fs.show_status = 'Upcoming' then
+            when fs.show_status = 'Upcoming'
+            then
                 case
-                    when fs.tickets_sold is not null and fs.revenue is not null then 'Complete'
-                    when fs.tickets_sold is not null or fs.revenue is not null then 'Partial'
+                    when
+                        fs.tickets_sold is not null
+                        and fs.revenue is not null
+                    then 'Complete'
+                    when
+                        fs.tickets_sold is not null
+                        or fs.revenue is not null
+                    then 'Partial'
                     else 'Basic'
                 end
             else 'Historical'
@@ -34,13 +49,18 @@ with show_lifecycle as (
 
         -- Update priority
         case
-            when fs.show_date < current_date and fs.show_status = 'Upcoming' then 'High'
-            when fs.show_date <= current_date + interval '7 days' and fs.tickets_sold is null then 'Medium'
-            when fs.show_date <= current_date + interval '30 days' and fs.tickets_sold is null then 'Low'
+            when
+                fs.show_date < current_date
+                and fs.show_status = 'Upcoming' then 'High'
+            when
+                fs.show_date <= current_date + interval '7 days'
+                and fs.tickets_sold is null then 'Medium'
+            when
+                fs.show_date <= current_date + interval '30 days'
+                and fs.tickets_sold is null then 'Low'
             else 'None'
         end as update_priority
-
-    from {{ ref('fact_shows') }} fs
+    from {{ ref('fact_shows') }} as fs
 ),
 
 venue_artist_matching as (
@@ -50,10 +70,12 @@ venue_artist_matching as (
         da.artist_id,
         da.artist_name,
         da.artist_tier
-    from {{ ref('fact_shows') }} fs
-    left join {{ ref('dim_artists') }} da on fs.artist_id = da.artist_id
-    where fs.show_status = 'Upcoming'
-      and fs.artist_id is null
+    from {{ ref('fact_shows') }} as fs
+    left join {{ ref('dim_artists') }} as da
+        on fs.artist_id = da.artist_id
+    where
+        fs.show_status = 'Upcoming'
+        and fs.artist_id is null
 )
 
 select
@@ -85,5 +107,6 @@ select
         else 'Monitor'
     end as recommended_action
 
-from show_lifecycle sl
-left join venue_artist_matching vam on sl.show_id = vam.show_id
+from show_lifecycle as sl
+left join venue_artist_matching as vam
+    on sl.show_id = vam.show_id

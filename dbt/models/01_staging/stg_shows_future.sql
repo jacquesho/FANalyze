@@ -16,7 +16,7 @@ cleaned_data as (
 
         -- Dates
         try_cast(show_date as date) as show_date,
-        try_cast(collected_at as timestamp) as collected_at,
+        collected_at,
 
         -- Location
         city_name,

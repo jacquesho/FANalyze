@@ -136,6 +136,8 @@ def load_csv_to_snowflake(csv_path, table_name):
     # Read CSV
     try:
         df = pd.read_csv(csv_path)
+        # Replace empty strings with NaN to ensure proper NULL handling
+        df = df.replace("", pd.NA)
         print(f"   Loaded {len(df)} rows, {len(df.columns)} columns")
     except Exception as e:
         print(f"❌ Error reading CSV: {e}")
@@ -195,26 +197,30 @@ def load_csv_to_snowflake(csv_path, table_name):
                             else:
                                 # Parse string timestamp - pandas handles ISO with timezone
                                 dt = pd.to_datetime(val_str)
-                            
+
                             # Ensure we have timezone info (assume UTC if missing)
                             if dt.tzinfo is None:
                                 dt = dt.tz_localize(timezone.utc)
-                            
+
                             # Convert to UTC first
                             dt_utc = dt.tz_convert(timezone.utc)
-                            
+
                             # Convert UTC to Bangkok/HCMC time (ICT = UTC+7)
                             ict_offset = timedelta(hours=7)
                             dt_ict = dt_utc.to_pydatetime() + ict_offset
-                            
+
                             # Format as TIMESTAMP_NTZ (no timezone): YYYY-MM-DD HH:MI:SS.fff
-                            val_str = dt_ict.strftime("%Y-%m-%d %H:%M:%S.%f").rstrip("0").rstrip(".")
-                        except Exception as e:
+                            val_str = (
+                                dt_ict.strftime("%Y-%m-%d %H:%M:%S.%f")
+                                .rstrip("0")
+                                .rstrip(".")
+                            )
+                        except Exception:
                             # Fallback: just remove timezone if parsing fails
                             if "T" in val_str:
                                 val_str = val_str.replace("T", " ")
                                 val_str = re.sub(r"[+-]\d{4}$", "", val_str).strip()
-                        
+
                         row_data.append(val_str)
                     else:
                         row_data.append(str(val))

@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Ruff linting
-        run: uv run ruff check .
+        run: uv run python -m ruff check .
 
   format:
     name: Code Formatting Check
@@ -51,7 +51,7 @@ jobs:
         run: uv sync --dev
 
       - name: Check code formatting
-        run: uv run ruff format --check .
+        run: uv run python -m ruff format --check .
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing
@@ -94,9 +94,7 @@ jobs:
         shell: bash
 
       - name: Run dbt debug
-        run: |
-          cd dbt
-          uv run dbt debug -t ci
+        run: uv run dbt debug -t ci --project-dir dbt
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -110,9 +108,7 @@ jobs:
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
 
       - name: Run SQLFluff lint
-        run: |
-          cd dbt
-          uv run sqlfluff lint models/
+        run: uv run sqlfluff lint dbt/models/
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -126,9 +122,7 @@ jobs:
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
 
       - name: Run dbt deps
-        run: |
-          cd dbt
-          uv run dbt deps -t ci
+        run: uv run dbt deps -t ci --project-dir dbt
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -142,9 +136,7 @@ jobs:
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
 
       - name: Run dbt tests
-        run: |
-          cd dbt
-          uv run dbt test -t ci
+        run: uv run dbt test -t ci --project-dir dbt
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}

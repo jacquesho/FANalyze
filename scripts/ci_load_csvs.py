@@ -6,8 +6,9 @@ Loads CSV files from data/raw/csv/ into FAN_CI_RAW schema
 
 import os
 import sys
+import re
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import snowflake.connector
 from cryptography.hazmat.primitives import serialization
@@ -160,7 +161,7 @@ def load_csv_to_snowflake(csv_path, table_name):
         cursor = conn.cursor()
         cursor.execute(f"DROP TABLE IF EXISTS FAN_CI_RAW.{table_name}")
         print(f"🔄 Dropped existing table FAN_CI_RAW.{table_name} (if existed)")
-        
+
         # Recreate table with correct schema
         create_table_if_not_exists(conn, table_name, df)
 
@@ -177,7 +178,7 @@ def load_csv_to_snowflake(csv_path, table_name):
                     row_data.append(None)
                 else:
                     col_lower = col.lower()
-                    # Keep timestamp strings as-is (Snowflake will parse them)
+                    # Convert timestamp strings to Snowflake-compatible format
                     if (
                         "updated" in col_lower
                         or "created" in col_lower
@@ -185,7 +186,36 @@ def load_csv_to_snowflake(csv_path, table_name):
                         or col_lower.endswith("_at")
                         or col_lower == "collected_at"
                     ):
-                        row_data.append(str(val))
+                        # Convert ISO timestamp to Bangkok/HCMC time (ICT, UTC+7)
+                        val_str = str(val)
+                        try:
+                            # Parse the timestamp using pandas (handles various formats)
+                            if isinstance(val, (datetime, pd.Timestamp)):
+                                dt = pd.to_datetime(val)
+                            else:
+                                # Parse string timestamp - pandas handles ISO with timezone
+                                dt = pd.to_datetime(val_str)
+                            
+                            # Ensure we have timezone info (assume UTC if missing)
+                            if dt.tzinfo is None:
+                                dt = dt.tz_localize(timezone.utc)
+                            
+                            # Convert to UTC first
+                            dt_utc = dt.tz_convert(timezone.utc)
+                            
+                            # Convert UTC to Bangkok/HCMC time (ICT = UTC+7)
+                            ict_offset = timedelta(hours=7)
+                            dt_ict = dt_utc.to_pydatetime() + ict_offset
+                            
+                            # Format as TIMESTAMP_NTZ (no timezone): YYYY-MM-DD HH:MI:SS.fff
+                            val_str = dt_ict.strftime("%Y-%m-%d %H:%M:%S.%f").rstrip("0").rstrip(".")
+                        except Exception as e:
+                            # Fallback: just remove timezone if parsing fails
+                            if "T" in val_str:
+                                val_str = val_str.replace("T", " ")
+                                val_str = re.sub(r"[+-]\d{4}$", "", val_str).strip()
+                        
+                        row_data.append(val_str)
                     else:
                         row_data.append(str(val))
             data_to_insert.append(tuple(row_data))

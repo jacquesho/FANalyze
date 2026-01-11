@@ -27,9 +27,18 @@ dependencies = [
     "langgraph-checkpoint-postgres>=3.0.2",
 ]
 
+[dependency-groups]
+pr_ci = [
+    "dbt-snowflake>=1.10.2",
+    "sqlfluff>=3.4.2",
+    "sqlfluff-templater-dbt>=3.4.2",
+]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.4",
+    "sqlfluff>=3.4.2",
+    "sqlfluff-templater-dbt>=3.4.2",
 ]
 airflow = [
     "apache-airflow-providers-postgres>=5.10.0",
@@ -53,3 +62,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 ignore = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

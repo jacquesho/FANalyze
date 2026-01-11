@@ -1,0 +1,79 @@
+version: 2
+
+models:
+  - name: dim_venues
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: venue_id
+        data_type: text
+      
+      - name: venue_name
+        data_type: text
+      
+      - name: venue_type
+        data_type: text
+      
+      - name: venue_capacity
+        data_type: text
+      
+      - name: city_name
+        data_type: text
+      
+      - name: state_code
+        data_type: text
+      
+      - name: country_name
+        data_type: text
+      
+      - name: market_size
+        data_type: text
+      
+      - name: total_shows
+        data_type: number
+      
+      - name: unique_artists
+        data_type: number
+      
+      - name: avg_attendance_rate
+        data_type: float
+      
+      - name: avg_ticket_price
+        data_type: float
+      
+      - name: total_revenue
+        data_type: float
+      
+      - name: total_tickets_sold
+        data_type: number
+      
+      - name: sellout_count
+        data_type: number
+      
+      - name: sellout_rate
+        data_type: float
+      
+      - name: first_show_date
+        data_type: date
+      
+      - name: last_show_date
+        data_type: date
+      
+      - name: upcoming_shows
+        data_type: number
+      
+      - name: has_upcoming_shows
+        data_type: boolean
+      
+      - name: avg_revenue_per_show
+        data_type: float
+      
+      - name: avg_tickets_per_show
+        data_type: number
+      
+      - name: venue_size_class
+        data_type: text
+      
+      - name: performance_tier
+        data_type: text

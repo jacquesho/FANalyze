@@ -141,8 +141,8 @@ jobs:
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
 
-      - name: Run dbt tests
-        run: uv run dbt test -t ci --project-dir dbt
+      - name: Run dbt build
+        run: uv run dbt build -t ci --project-dir dbt
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}

@@ -157,5 +157,3 @@ except Exception as e:
 
 # Create the DAG instance
 streaming_pipeline_dag()
-
-

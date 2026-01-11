@@ -130,5 +130,3 @@ finally:
 
 # Create the DAG instance
 batch_pipeline_dag()
-
-

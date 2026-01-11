@@ -12,7 +12,7 @@ tab_space_size = 4
 ignore_comment_lines = true
 
 [sqlfluff:rules:structure.column_order]
-wildcard_policy = single
+wildcard_policy = before
 
 [sqlfluff:templater:dbt]
 profiles_dir = .dbt

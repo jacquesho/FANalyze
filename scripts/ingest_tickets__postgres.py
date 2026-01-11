@@ -5,35 +5,36 @@ Creates tables and loads ticket sales data for analytics
 """
 
 import os
-import sys
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
-from datetime import datetime
 import logging
-from pathlib import Path
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 def get_postgres_connection():
     """Get Postgres connection using environment variables"""
     try:
         conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST', 'localhost'),
-            port=os.getenv('POSTGRES_PORT', '5432'),
-            database=os.getenv('POSTGRES_DATABASE', 'fanalyze'),
-            user=os.getenv('POSTGRES_USER', 'postgres'),
-            password=os.getenv('POSTGRES_PASSWORD', 'password')
+            host=os.getenv("POSTGRES_HOST", "localhost"),
+            port=os.getenv("POSTGRES_PORT", "5432"),
+            database=os.getenv("POSTGRES_DATABASE", "fanalyze"),
+            user=os.getenv("POSTGRES_USER", "postgres"),
+            password=os.getenv("POSTGRES_PASSWORD", "password"),
         )
         return conn
     except Exception as e:
         raise Exception(f"Failed to connect to Postgres: {e}")
 
+
 def create_ticket_sales_table(conn):
     """Create ticket_sales table with sync tracking if it doesn't exist"""
-    
+
     create_table_sql = """
     CREATE TABLE IF NOT EXISTS ticket_sales (
         id SERIAL PRIMARY KEY,
@@ -57,7 +58,7 @@ def create_ticket_sales_table(conn):
     CREATE INDEX IF NOT EXISTS idx_ticket_sales_sync_status ON ticket_sales(sync_status);
     CREATE INDEX IF NOT EXISTS idx_ticket_sales_days_until_show ON ticket_sales(days_until_show);
     """
-    
+
     cursor = conn.cursor()
     try:
         cursor.execute(create_table_sql)
@@ -69,42 +70,47 @@ def create_ticket_sales_table(conn):
     finally:
         cursor.close()
 
+
 def load_ticket_sales_data(conn, csv_file_path):
     """Load ticket sales data from CSV into Postgres"""
-    
+
     # Read CSV
     logger.info(f"📊 Reading ticket sales data from {csv_file_path}")
     df = pd.read_csv(csv_file_path)
-    
+
     if df.empty:
         logger.warning("⚠️ No data found in CSV file")
         return False
-    
+
     logger.info(f"📈 Found {len(df)} ticket sales records")
-    
+
     # Prepare data for insertion
     data_tuples = []
     for _, row in df.iterrows():
-        data_tuples.append((
-            row['show_id'],
-            row['sale_date'],
-            int(row['tickets_sold']),
-            int(row['cumulative_tickets_sold']),
-            float(row['revenue']),
-            float(row['cumulative_revenue']),
-            float(row['sales_rate']),
-            int(row['days_until_show'])
-        ))
-    
+        data_tuples.append(
+            (
+                row["show_id"],
+                row["sale_date"],
+                int(row["tickets_sold"]),
+                int(row["cumulative_tickets_sold"]),
+                float(row["revenue"]),
+                float(row["cumulative_revenue"]),
+                float(row["sales_rate"]),
+                int(row["days_until_show"]),
+            )
+        )
+
     # Insert data
     cursor = conn.cursor()
     try:
         # Clear existing data for these shows
-        show_ids = df['show_id'].unique()
-        placeholders = ','.join(['%s'] * len(show_ids))
-        cursor.execute(f"DELETE FROM ticket_sales WHERE show_id IN ({placeholders})", show_ids)
+        show_ids = df["show_id"].unique()
+        placeholders = ",".join(["%s"] * len(show_ids))
+        cursor.execute(
+            f"DELETE FROM ticket_sales WHERE show_id IN ({placeholders})", show_ids
+        )
         logger.info(f"🗑️ Cleared existing data for {len(show_ids)} shows")
-        
+
         # Insert new data
         insert_sql = """
         INSERT INTO ticket_sales 
@@ -119,13 +125,13 @@ def load_ticket_sales_data(conn, csv_file_path):
             sales_rate = EXCLUDED.sales_rate,
             days_until_show = EXCLUDED.days_until_show
         """
-        
+
         execute_values(cursor, insert_sql, data_tuples)
         conn.commit()
-        
+
         logger.info(f"✅ Successfully loaded {len(data_tuples)} ticket sales records")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Error loading data: {e}")
         conn.rollback()
@@ -133,9 +139,10 @@ def load_ticket_sales_data(conn, csv_file_path):
     finally:
         cursor.close()
 
+
 def create_analytics_views(conn):
     """Create useful analytics views for ticket sales data"""
-    
+
     views_sql = """
     -- Daily sales summary
     CREATE OR REPLACE VIEW daily_sales_summary AS
@@ -177,7 +184,7 @@ def create_analytics_views(conn):
     GROUP BY days_until_show
     ORDER BY days_until_show;
     """
-    
+
     cursor = conn.cursor()
     try:
         cursor.execute(views_sql)
@@ -189,50 +196,52 @@ def create_analytics_views(conn):
     finally:
         cursor.close()
 
+
 def main():
     """Main function to ingest ticket sales data into Postgres"""
-    
+
     # Get CSV file path
-    csv_file = 'data/raw/csv/synthetic_ticket_sales.csv'
-    
+    csv_file = "data/raw/csv/synthetic_ticket_sales.csv"
+
     if not os.path.exists(csv_file):
         logger.error(f"❌ CSV file not found: {csv_file}")
         logger.info("💡 Run generate_synthetic_ticket_sales.py first")
         return
-    
+
     try:
         # Connect to Postgres
         logger.info("🔌 Connecting to Postgres...")
         conn = get_postgres_connection()
-        
+
         # Create table
         logger.info("📋 Creating ticket sales table...")
         create_ticket_sales_table(conn)
-        
+
         # Load data
         logger.info("📊 Loading ticket sales data...")
         success = load_ticket_sales_data(conn, csv_file)
-        
+
         if success:
             # Create analytics views
             logger.info("📈 Creating analytics views...")
             create_analytics_views(conn)
-            
+
             logger.info("🎉 Ticket sales data ingestion complete!")
             logger.info("📊 You can now query the following tables/views:")
             logger.info("   - ticket_sales (raw data)")
             logger.info("   - daily_sales_summary")
-            logger.info("   - show_sales_performance") 
+            logger.info("   - show_sales_performance")
             logger.info("   - sales_velocity_analysis")
         else:
             logger.error("❌ Failed to load ticket sales data")
-            
+
     except Exception as e:
         logger.error(f"❌ Error during ingestion: {e}")
         raise
     finally:
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.close()
+
 
 if __name__ == "__main__":
     main()

@@ -1,16 +1,13 @@
 # scripts/data_collection/api_collector.py
-import json
-import logging
 import os
-import time
 from pathlib import Path
 from typing import Dict, List
 
-import requests
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
 
 class APIDataCollector:
     def __init__(self, api_name: str):
@@ -32,6 +29,7 @@ class APIDataCollector:
         # Your implementation here
         pass
 
+
 def main():
     """Main function to demonstrate API data collection."""
     collector = APIDataCollector("your_api_name")
@@ -48,6 +46,7 @@ def main():
     except Exception as e:
         print(f"Data collection failed: {e}")
         raise
+
 
 if __name__ == "__main__":
     main()

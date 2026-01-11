@@ -20,7 +20,9 @@ def test_postgres_connection() -> None:
     pg_user = os.getenv("POSTGRES_USER")
     pg_password = os.getenv("POSTGRES_PASSWORD")
 
-    assert pg_db and pg_user and pg_password, "Missing Postgres env vars (POSTGRES_DB/USER/PASSWORD)."
+    assert pg_db and pg_user and pg_password, (
+        "Missing Postgres env vars (POSTGRES_DB/USER/PASSWORD)."
+    )
 
     conn = None
     try:
@@ -39,5 +41,3 @@ def test_postgres_connection() -> None:
     finally:
         if conn is not None:
             conn.close()
-
-

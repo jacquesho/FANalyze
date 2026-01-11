@@ -10,11 +10,10 @@ Steps:
 3) Enrich CSV in-place with synthetic ticket metrics
 """
 
-import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 import pandas as pd
 from rich.console import Console
@@ -38,7 +37,12 @@ def _safe_get(d: Dict[str, Any], path: List[str], default: str = "") -> str:
     return cur if isinstance(cur, str) else (str(cur) if cur is not None else default)
 
 
-def _build_show_rows_csv(artist_name: str, artist_id: str, setlists: List[Dict[str, Any]], since_date: Optional[date] = None):
+def _build_show_rows_csv(
+    artist_name: str,
+    artist_id: str,
+    setlists: List[Dict[str, Any]],
+    since_date: Optional[date] = None,
+):
     rows = []
     for sl in setlists:
         show_id = _safe_get(sl, ["id"])  # setlist id
@@ -46,7 +50,9 @@ def _build_show_rows_csv(artist_name: str, artist_id: str, setlists: List[Dict[s
         venue_name = _safe_get(sl, ["venue", "name"])
         venue_id = _safe_get(sl, ["venue", "id"])  # may be empty
         city_name = _safe_get(sl, ["venue", "city", "name"])
-        state_code = _safe_get(sl, ["venue", "city", "stateCode"])  # may be empty/non-US
+        state_code = _safe_get(
+            sl, ["venue", "city", "stateCode"]
+        )  # may be empty/non-US
         country_name = _safe_get(sl, ["venue", "city", "country", "name"])
 
         # Filter by since_date if provided
@@ -80,8 +86,16 @@ def _write_csv(all_rows: List[Dict[str, Any]], csv_path: Path) -> Path:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(all_rows)
     columns = [
-        "ARTIST_ID", "ARTIST_NAME", "SHOW_ID", "SHOW_DATE", "SOURCE",
-        "VENUE_NAME", "VENUE_ID", "CITY_NAME", "STATE_CODE", "COUNTRY_NAME",
+        "ARTIST_ID",
+        "ARTIST_NAME",
+        "SHOW_ID",
+        "SHOW_DATE",
+        "SOURCE",
+        "VENUE_NAME",
+        "VENUE_ID",
+        "CITY_NAME",
+        "STATE_CODE",
+        "COUNTRY_NAME",
     ]
     df = df[columns]
     df.to_csv(csv_path, index=False)
@@ -89,7 +103,10 @@ def _write_csv(all_rows: List[Dict[str, Any]], csv_path: Path) -> Path:
 
 
 def _enrich_csv_in_place(csv_path: Path) -> None:
-    from scripts.enrich_history_from_setlistfm import enrich_frame  # reuse existing logic
+    from scripts.enrich_history_from_setlistfm import (
+        enrich_frame,
+    )  # reuse existing logic
+
     df = pd.read_csv(csv_path)
     enriched = enrich_frame(df)
     enriched.to_csv(csv_path, index=False)
@@ -99,16 +116,35 @@ def main() -> bool:
     console.print("🚀 Exporting SetlistFM history to CSV", style="bold blue")
     # Args
     import argparse
-    parser = argparse.ArgumentParser(description="Export SetlistFM history to CSV (with enrichment)")
-    parser.add_argument("--since", default="2015-01-01", help="Only include shows on/after this date (YYYY-MM-DD)")
-    parser.add_argument("--until", default=None, help="Only include shows on/before this date (YYYY-MM-DD). Default: today")
-    parser.add_argument("--max-pages", type=int, default=None, help="Optional max pages per artist to fetch")
+
+    parser = argparse.ArgumentParser(
+        description="Export SetlistFM history to CSV (with enrichment)"
+    )
+    parser.add_argument(
+        "--since",
+        default="2015-01-01",
+        help="Only include shows on/after this date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--until",
+        default=None,
+        help="Only include shows on/before this date (YYYY-MM-DD). Default: today",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Optional max pages per artist to fetch",
+    )
     args = parser.parse_args()
 
     try:
         since_date = datetime.strptime(args.since, "%Y-%m-%d").date()
     except ValueError:
-        console.print(f"❌ Invalid --since date format: {args.since} (expected YYYY-MM-DD)", style="red")
+        console.print(
+            f"❌ Invalid --since date format: {args.since} (expected YYYY-MM-DD)",
+            style="red",
+        )
         return False
 
     until_date: Optional[date] = None
@@ -116,7 +152,10 @@ def main() -> bool:
         try:
             until_date = datetime.strptime(args.until, "%Y-%m-%d").date()
         except ValueError:
-            console.print(f"❌ Invalid --until date format: {args.until} (expected YYYY-MM-DD)", style="red")
+            console.print(
+                f"❌ Invalid --until date format: {args.until} (expected YYYY-MM-DD)",
+                style="red",
+            )
             return False
     api = SetlistFMAPI()
     all_artists = api.artist_config.get_active_artists()
@@ -125,14 +164,18 @@ def main() -> bool:
     for artist in all_artists:
         console.print(f"\n🎵 Fetching artist: {artist.name}", style="cyan")
         # Use windowed API (server-side date filtering) with optional page cap
-        end_dt = datetime.combine((until_date or datetime.now().date()), datetime.min.time())
+        end_dt = datetime.combine(
+            (until_date or datetime.now().date()), datetime.min.time()
+        )
         setlists = api.fetch_artist_setlists_window(
             artist,
             since_date=datetime.combine(since_date, datetime.min.time()),
             end_date=end_dt,
             max_pages=args.max_pages,
         )
-        show_rows = _build_show_rows_csv(artist.name, artist.musicbrainz_id, setlists, since_date=since_date)
+        show_rows = _build_show_rows_csv(
+            artist.name, artist.musicbrainz_id, setlists, since_date=since_date
+        )
         all_rows.extend(show_rows)
 
     csv_path = PROJECT_ROOT / "data" / "raw" / "csv" / "shows_history.csv"
@@ -140,15 +183,17 @@ def main() -> bool:
     window_desc = f"since {since_date.isoformat()}"
     if until_date:
         window_desc += f" to {until_date.isoformat()}"
-    console.print(f"💾 Wrote CSV: {csv_path} ({window_desc}, rows={len(all_rows)})", style="green")
+    console.print(
+        f"💾 Wrote CSV: {csv_path} ({window_desc}, rows={len(all_rows)})", style="green"
+    )
 
     _enrich_csv_in_place(csv_path)
-    console.print("✨ Enriched CSV in-place with synthetic ticket metrics", style="green")
+    console.print(
+        "✨ Enriched CSV in-place with synthetic ticket metrics", style="green"
+    )
     return True
 
 
 if __name__ == "__main__":
     ok = main()
     raise SystemExit(0 if ok else 1)
-
-

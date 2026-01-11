@@ -27,11 +27,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Install Ruff tool
-        run: uv tool install ruff
-
       - name: Run Ruff linting
-        run: uv tool run ruff check .
+        run: uv run ruff check .
 
   format:
     name: Code Formatting Check
@@ -53,11 +50,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Install Ruff tool
-        run: uv tool install ruff
-
       - name: Check code formatting
-        run: uv tool run ruff format --check .
+        run: uv run ruff format --check .
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing
@@ -110,7 +104,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -126,7 +120,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -142,7 +136,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -158,7 +152,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci

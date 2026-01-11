@@ -22,9 +22,9 @@ def test_snowflake_connection() -> None:
     sf_role = os.getenv("SNOWFLAKE_ROLE")
     sf_private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
 
-    assert (
-        sf_user and sf_account and sf_private_key_path
-    ), "Missing Snowflake env vars (require USER, ACCOUNT, and PRIVATE_KEY_PATH)."
+    assert sf_user and sf_account and sf_private_key_path, (
+        "Missing Snowflake env vars (require USER, ACCOUNT, and PRIVATE_KEY_PATH)."
+    )
 
     conn = None
     try:
@@ -49,11 +49,11 @@ def test_snowflake_connection() -> None:
         try:
             cur.execute("SELECT CURRENT_VERSION();")
             version = cur.fetchone()
-            assert version and len(version[0]) > 0, "Snowflake connectivity check failed."
+            assert version and len(version[0]) > 0, (
+                "Snowflake connectivity check failed."
+            )
         finally:
             cur.close()
     finally:
         if conn is not None:
             conn.close()
-
-

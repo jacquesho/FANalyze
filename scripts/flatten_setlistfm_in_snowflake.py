@@ -27,7 +27,10 @@ def main() -> bool:
     try:
         console.print(f"🧱 Executing flatten SQL from {sql_path}", style="cyan")
         cur.execute(sql_text)
-        console.print("✅ Flatten tables created (testing.flat_shows, testing.flat_setlists)", style="green")
+        console.print(
+            "✅ Flatten tables created (testing.flat_shows, testing.flat_setlists)",
+            style="green",
+        )
         return True
     finally:
         cur.close()
@@ -37,5 +40,3 @@ def main() -> bool:
 if __name__ == "__main__":
     ok = main()
     raise SystemExit(0 if ok else 1)
-
-

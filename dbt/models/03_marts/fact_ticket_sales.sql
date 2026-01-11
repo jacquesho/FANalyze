@@ -9,7 +9,7 @@
 ) }}
 
 WITH ticket_sales_staging AS (
-    SELECT 
+    SELECT
         ticket_sales_key,
         id,
         timestamp,
@@ -32,37 +32,37 @@ WITH ticket_sales_staging AS (
         sales_velocity_per_day,
         created_at,
         synced_at,
-        
+
         -- Additional business logic
-        CASE 
+        CASE
             WHEN sales_rate >= 80 THEN 'High Demand'
             WHEN sales_rate >= 50 THEN 'Medium Demand'
             WHEN sales_rate >= 20 THEN 'Low Demand'
             ELSE 'Very Low Demand'
         END AS demand_category,
-        
-        CASE 
+
+        CASE
             WHEN days_until_show <= 7 THEN 'Last Week'
             WHEN days_until_show <= 30 THEN 'Last Month'
             WHEN days_until_show <= 90 THEN 'Last Quarter'
             ELSE 'Future'
         END AS time_to_show_category,
-        
+
         -- Revenue per ticket calculation
-        CASE 
+        CASE
             WHEN tickets_sold > 0 THEN ROUND(revenue / tickets_sold, 2)
-            ELSE NULL 
+            ELSE NULL
         END AS revenue_per_ticket
-        
+
     FROM {{ ref('int_ticket_sales_dedup') }}
-    
+
     {% if is_incremental() %}
         -- Only process new records since last run (with safe fallback on first load)
         WHERE timestamp >= COALESCE((SELECT MAX(timestamp) FROM {{ this }}), '1970-01-01'::timestamp)
     {% endif %}
 )
 
-SELECT 
+SELECT
     ticket_sales_key,
     id,
     timestamp,
@@ -90,5 +90,5 @@ SELECT
     synced_at,
     CURRENT_TIMESTAMP() AS dbt_updated_at,
     CURRENT_TIMESTAMP() AS dbt_created_at
-    
+
 FROM ticket_sales_staging

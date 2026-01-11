@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='marts') }}
 
 with historical_shows as (
-    select 
+    select
         show_id,
         artist_id,
         venue_id,
@@ -29,12 +29,12 @@ with historical_shows as (
         'Historical' as show_status,
         null as last_updated,
         current_timestamp as ingested_at
-        
+
     from {{ ref('int_shows') }}
 ),
 
 upcoming_shows as (
-    select 
+    select
         show_id,
         null as artist_id,  -- Will be populated when artist data is available
         venue_id,
@@ -43,7 +43,7 @@ upcoming_shows as (
         extract(month from show_date) as show_month,
         extract(quarter from show_date) as show_quarter,
         extract(dayofweek from show_date) as day_of_week,
-        case 
+        case
             when extract(month from show_date) in (12, 1, 2) then 'Winter'
             when extract(month from show_date) in (3, 4, 5) then 'Spring'
             when extract(month from show_date) in (6, 7, 8) then 'Summer'
@@ -67,7 +67,7 @@ upcoming_shows as (
         'Upcoming' as show_status,
         null as last_updated,
         collected_at as ingested_at
-        
+
     from {{ ref('stg_shows_future') }}
 ),
 
@@ -77,7 +77,7 @@ unified_shows as (
     select * from upcoming_shows
 )
 
-select 
+select
     show_id,
     artist_id,
     venue_id,
@@ -105,38 +105,35 @@ select
     show_status,
     last_updated,
     ingested_at,
-    
+
     -- Business metrics (only for historical shows with data)
-    case 
+    case
         when show_status = 'Historical' and tickets_sold is not null then
-            case 
+            case
                 when tickets_sold >= venue_capacity * 0.9 then 'Near Sellout'
                 when tickets_sold >= venue_capacity * 0.7 then 'Good Sales'
                 when tickets_sold >= venue_capacity * 0.5 then 'Average Sales'
                 else 'Low Sales'
             end
-        else null
     end as sales_performance,
-    
-    case 
+    case
         when show_status = 'Historical' and revenue is not null then
-            case 
+            case
                 when revenue >= 1000000 then 'High Revenue'
                 when revenue >= 500000 then 'Medium Revenue'
                 when revenue >= 100000 then 'Low Revenue'
                 else 'Very Low Revenue'
             end
-        else null
     end as revenue_tier,
-    
+
     -- Day of week performance
-    case 
+    case
         when day_of_week in (6, 7) then 'Weekend'
         else 'Weekday'
     end as weekend_show,
-    
+
     -- Time-based status
-    case 
+    case
         when show_date < current_date then 'Past'
         when show_date = current_date then 'Today'
         when show_date <= current_date + interval '7 days' then 'This Week'
@@ -144,11 +141,11 @@ select
         when show_date <= current_date + interval '90 days' then 'Next 3 Months'
         else 'Future'
     end as time_status,
-    
+
     -- Days until/from show
-    case 
+    case
         when show_date < current_date then datediff(day, show_date, current_date)
         else datediff(day, current_date, show_date)
     end as days_from_show
-    
+
 from unified_shows

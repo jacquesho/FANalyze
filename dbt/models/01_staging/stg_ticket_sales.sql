@@ -7,7 +7,7 @@
 ) }}
 
 WITH cleaned_ticket_sales AS (
-    SELECT 
+    SELECT
         id,
         timestamp,
         show_id,
@@ -27,28 +27,26 @@ WITH cleaned_ticket_sales AS (
         average_ticket_price,
         created_at,
         synced_at,
-        
+
         -- Data quality checks
-        CASE 
+        CASE
             WHEN tickets_sold < 0 THEN NULL
-            ELSE tickets_sold 
+            ELSE tickets_sold
         END AS tickets_sold_clean,
-        
-        CASE 
+        CASE
             WHEN revenue < 0 THEN NULL
-            ELSE revenue 
+            ELSE revenue
         END AS revenue_clean,
-        
-        CASE 
+        CASE
             WHEN venue_capacity <= 0 THEN NULL
-            ELSE venue_capacity 
+            ELSE venue_capacity
         END AS venue_capacity_clean,
-        
+
         -- Generate unique key using custom macro
         {{ generate_ticket_sales_key('show_id', 'timestamp') }} AS ticket_sales_key
-        
+
     FROM {{ source('ticket_sales', 'raw_tickets') }}
-    WHERE 
+    WHERE
         -- Filter out invalid records
         show_id IS NOT NULL
         AND artist_name IS NOT NULL
@@ -57,7 +55,7 @@ WITH cleaned_ticket_sales AS (
         AND timestamp IS NOT NULL
 )
 
-SELECT 
+SELECT
     id,
     timestamp,
     show_id,
@@ -78,15 +76,17 @@ SELECT
     created_at,
     synced_at,
     ticket_sales_key,
-    
+
     -- Additional calculated fields
-    CASE 
-        WHEN venue_capacity_clean > 0 THEN 
-            ROUND((cumulative_tickets_sold::FLOAT / venue_capacity_clean::FLOAT) * 100, 2)
-        ELSE NULL 
+    CASE
+        WHEN venue_capacity_clean > 0 THEN
+            ROUND(
+                (cumulative_tickets_sold::FLOAT / venue_capacity_clean::FLOAT) * 100,
+                2
+            )
     END AS venue_utilization_pct,
-    
+
     -- Sales velocity calculation using custom macro
     {{ calculate_sales_velocity('tickets_sold_clean', 'days_until_show') }} AS sales_velocity_per_day
-    
+
 FROM cleaned_ticket_sales

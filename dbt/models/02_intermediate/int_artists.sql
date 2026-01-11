@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='intermediate') }}
 
 with all_artists as (
-    select distinct
+    select
         artist_id,
         artist_name,
         artist_tier,
@@ -17,14 +17,14 @@ with all_artists as (
 ),
 
 future_artists as (
-    select distinct
+    select
         artist_name,
         count(distinct show_id) as upcoming_shows
     from {{ ref('stg_shows_future') }}
     group by artist_name
 )
 
-select 
+select
     a.artist_id,
     a.artist_name,
     a.artist_tier,
@@ -36,9 +36,7 @@ select
     a.total_revenue,
     a.total_tickets_sold,
     coalesce(f.upcoming_shows, 0) as upcoming_shows,
-    case 
-        when f.upcoming_shows > 0 then true 
-        else false 
-    end as has_upcoming_shows
+    coalesce(f.upcoming_shows, 0) > 0 as has_upcoming_shows
 from all_artists a
-left join future_artists f on a.artist_name = f.artist_name
+left join future_artists f
+    on a.artist_name = f.artist_name

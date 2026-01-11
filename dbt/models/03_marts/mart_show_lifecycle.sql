@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='marts') }}
 
 with show_lifecycle as (
-    select 
+    select
         fs.show_id,
         fs.artist_id,
         fs.venue_id,
@@ -13,39 +13,39 @@ with show_lifecycle as (
         fs.revenue,
         fs.attendance_rate,
         fs.is_sellout,
-        
+
         -- Lifecycle tracking
-        case 
+        case
             when fs.show_date < current_date and fs.show_status = 'Upcoming' then 'Needs Status Update'
             when fs.show_date >= current_date and fs.show_status = 'Historical' then 'Needs Status Update'
             else 'Status Current'
         end as status_consistency,
-        
+
         -- Data completeness for upcoming shows
-        case 
+        case
             when fs.show_status = 'Upcoming' then
-                case 
+                case
                     when fs.tickets_sold is not null and fs.revenue is not null then 'Complete'
                     when fs.tickets_sold is not null or fs.revenue is not null then 'Partial'
                     else 'Basic'
                 end
             else 'Historical'
         end as data_completeness,
-        
+
         -- Update priority
-        case 
+        case
             when fs.show_date < current_date and fs.show_status = 'Upcoming' then 'High'
             when fs.show_date <= current_date + interval '7 days' and fs.tickets_sold is null then 'Medium'
             when fs.show_date <= current_date + interval '30 days' and fs.tickets_sold is null then 'Low'
             else 'None'
         end as update_priority
-        
+
     from {{ ref('fact_shows') }} fs
 ),
 
 venue_artist_matching as (
     -- Try to match upcoming shows with historical artist data
-    select 
+    select
         fs.show_id,
         da.artist_id,
         da.artist_name,
@@ -56,7 +56,7 @@ venue_artist_matching as (
       and fs.artist_id is null
 )
 
-select 
+select
     sl.show_id,
     sl.artist_id,
     sl.venue_id,
@@ -71,19 +71,19 @@ select
     sl.status_consistency,
     sl.data_completeness,
     sl.update_priority,
-    
+
     -- Artist matching
     vam.artist_name,
     vam.artist_tier,
-    
+
     -- Action required
-    case 
+    case
         when sl.status_consistency = 'Needs Status Update' then 'Update Status'
         when sl.update_priority = 'High' then 'Urgent Data Update'
         when sl.update_priority = 'Medium' then 'Schedule Data Update'
         when sl.data_completeness = 'Basic' then 'Enhance Data'
         else 'Monitor'
     end as recommended_action
-    
+
 from show_lifecycle sl
 left join venue_artist_matching vam on sl.show_id = vam.show_id

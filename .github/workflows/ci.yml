@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Ruff linting
-        run: .venv/bin/ruff check .
+        run: uv run ruff check .
 
   format:
     name: Code Formatting Check
@@ -51,7 +51,7 @@ jobs:
         run: uv sync --dev
 
       - name: Check code formatting
-        run: .venv/bin/ruff format --check .
+        run: uv run ruff format --check .
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing
@@ -108,7 +108,7 @@ jobs:
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
 
       - name: Run SQLFluff lint
-        run: uv run sqlfluff lint --dialect snowflake dbt/models/
+        run: uv run sqlfluff lint --dialect snowflake --templater dbt dbt/models/
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}

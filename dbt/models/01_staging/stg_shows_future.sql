@@ -9,23 +9,23 @@ cleaned_data as (
         -- Identifiers
         show_id,
         venue_id,
-        
+
         -- Basic info
         artist_name,
         venue_name,
-        
+
         -- Dates
         try_cast(show_date as date) as show_date,
         try_cast(collected_at as timestamp) as collected_at,
-        
+
         -- Location
         city_name,
         state_code,
         country_name,
-        
+
         -- Metadata
         source
-        
+
     from source_data
     where show_date is not null
       and artist_name is not null

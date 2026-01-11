@@ -26,6 +26,8 @@ Requires-Dist: langgraph>=1.0.5
 Requires-Dist: langgraph-checkpoint-postgres>=3.0.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8.4; extra == "dev"
+Requires-Dist: sqlfluff>=3.4.2; extra == "dev"
+Requires-Dist: sqlfluff-templater-dbt>=3.4.2; extra == "dev"
 Provides-Extra: airflow
 Requires-Dist: apache-airflow-providers-postgres>=5.10.0; extra == "airflow"
 Requires-Dist: apache-airflow-providers-snowflake>=5.0.0; extra == "airflow"

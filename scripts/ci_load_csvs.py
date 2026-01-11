@@ -152,16 +152,17 @@ def load_csv_to_snowflake(csv_path, table_name):
         # Create schema if it doesn't exist
         create_schema_if_not_exists(conn)
 
-        # Create table if it doesn't exist
-        create_table_if_not_exists(conn, table_name, df)
-
         # Add ingested_at timestamp only if column doesn't exist
         if "INGESTED_AT" not in df.columns:
             df["INGESTED_AT"] = datetime.now()
 
-        # Clear existing data
+        # Drop and recreate table to ensure correct schema
         cursor = conn.cursor()
-        cursor.execute(f"DELETE FROM FAN_CI_RAW.{table_name}")
+        cursor.execute(f"DROP TABLE IF EXISTS FAN_CI_RAW.{table_name}")
+        print(f"🔄 Dropped existing table FAN_CI_RAW.{table_name} (if existed)")
+        
+        # Recreate table with correct schema
+        create_table_if_not_exists(conn, table_name, df)
 
         # Insert data
         print(f"📤 Inserting {len(df)} rows into FAN_CI_RAW.{table_name}")

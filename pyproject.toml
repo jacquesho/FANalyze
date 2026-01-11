@@ -37,6 +37,7 @@ pr_ci = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.4",
+    "ruff>=0.1.0",
     "sqlfluff>=3.4.2",
     "sqlfluff-templater-dbt>=3.4.2",
 ]

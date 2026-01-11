@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Ruff linting
-        run: uv run ruff check .
+        run: uv run python -m ruff check .
 
   format:
     name: Code Formatting Check
@@ -51,7 +51,7 @@ jobs:
         run: uv sync --dev
 
       - name: Check code formatting
-        run: uv run ruff format --check .
+        run: uv run python -m ruff format --check .
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing
@@ -99,6 +99,7 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
@@ -106,6 +107,7 @@ jobs:
           SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_TARGET: ci
 
       - name: Run SQLFluff lint
         run: uv run sqlfluff lint --dialect snowflake --templater dbt dbt/models/
@@ -113,6 +115,7 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
@@ -120,6 +123,7 @@ jobs:
           SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_TARGET: ci
 
       - name: Run dbt deps
         run: uv run dbt deps -t ci --project-dir dbt
@@ -127,6 +131,7 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
@@ -134,6 +139,7 @@ jobs:
           SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_TARGET: ci
 
       - name: Run dbt tests
         run: uv run dbt test -t ci --project-dir dbt
@@ -141,6 +147,7 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
@@ -148,3 +155,4 @@ jobs:
           SNOWFLAKE_SCHEMA_CI: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_TARGET: ci

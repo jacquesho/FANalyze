@@ -104,7 +104,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -120,7 +120,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -136,7 +136,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci
@@ -152,7 +152,7 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA_CI }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
           DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
           DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
           DBT_TARGET: ci

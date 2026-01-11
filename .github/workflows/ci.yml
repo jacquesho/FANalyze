@@ -27,8 +27,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
+      - name: Install Ruff tool
+        run: uv tool install ruff
+
       - name: Run Ruff linting
-        run: uv run python -m ruff check .
+        run: uv tool run ruff check .
 
   format:
     name: Code Formatting Check
@@ -50,8 +53,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
+      - name: Install Ruff tool
+        run: uv tool install ruff
+
       - name: Check code formatting
-        run: uv run python -m ruff format --check .
+        run: uv tool run ruff format --check .
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing

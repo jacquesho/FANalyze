@@ -28,6 +28,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+dev = [
+    "ruff>=0.14.11",
+]
 pr_ci = [
     "dbt-snowflake>=1.10.2",
     "sqlfluff>=3.4.2",

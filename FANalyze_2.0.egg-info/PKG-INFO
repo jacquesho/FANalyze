@@ -26,6 +26,7 @@ Requires-Dist: langgraph>=1.0.5
 Requires-Dist: langgraph-checkpoint-postgres>=3.0.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8.4; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
 Requires-Dist: sqlfluff>=3.4.2; extra == "dev"
 Requires-Dist: sqlfluff-templater-dbt>=3.4.2; extra == "dev"
 Provides-Extra: airflow

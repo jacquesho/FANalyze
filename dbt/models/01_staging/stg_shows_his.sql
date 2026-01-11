@@ -15,7 +15,8 @@ cleaned_data as (
 
         -- Dates
         case
-            when show_date like '%/%' then
+            when show_date like '%/%'
+            then
                 try_cast(
                     concat(
                         split_part(show_date, '/', 3),
@@ -25,8 +26,7 @@ cleaned_data as (
                         lpad(split_part(show_date, '/', 2), 2, '0')
                     ) as date
                 )
-            else
-                try_cast(show_date as date)
+            else try_cast(show_date as date)
         end as show_date,
 
         -- Location

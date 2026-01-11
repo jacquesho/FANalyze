@@ -18,23 +18,30 @@ with show_lifecycle as (
         case
             when
                 fs.show_date < current_date
-                and fs.show_status = 'Upcoming' then
+                and fs.show_status = 'Upcoming'
+            then
                 'Needs Status Update'
             when
                 fs.show_date >= current_date
-                and fs.show_status = 'Historical' then
+                and fs.show_status = 'Historical'
+            then
                 'Needs Status Update'
             else 'Status Current'
         end as status_consistency,
 
         -- Data completeness for upcoming shows
         case
-            when fs.show_status = 'Upcoming' then
+            when fs.show_status = 'Upcoming'
+            then
                 case
-                    when fs.tickets_sold is not null
-                        and fs.revenue is not null then 'Complete'
-                    when fs.tickets_sold is not null
-                        or fs.revenue is not null then 'Partial'
+                    when
+                        fs.tickets_sold is not null
+                        and fs.revenue is not null
+                    then 'Complete'
+                    when
+                        fs.tickets_sold is not null
+                        or fs.revenue is not null
+                    then 'Partial'
                     else 'Basic'
                 end
             else 'Historical'

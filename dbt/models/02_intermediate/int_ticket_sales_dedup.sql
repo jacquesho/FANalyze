@@ -14,7 +14,7 @@ WITH ranked AS (
             PARTITION BY ts.ticket_sales_key
             ORDER BY ts.timestamp DESC, ts.created_at DESC, ts.id DESC
         ) AS rn
-    FROM {{ ref('stg_ticket_sales') }} as ts
+    FROM {{ ref('stg_ticket_sales') }} AS ts
 )
 
 SELECT

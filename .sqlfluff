@@ -1,7 +1,7 @@
 [sqlfluff]
 dialect = snowflake
 templater = dbt
-exclude_rules = TMP,ST06
+exclude_rules = ST06
 max_line_length = 100
 
 [sqlfluff:indentation]

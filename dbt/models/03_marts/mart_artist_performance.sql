@@ -76,5 +76,6 @@ select
         else 'No Growth'
     end as growth_potential
 
-from artist_metrics am
-left join venue_diversity vd on am.artist_id = vd.artist_id
+from artist_metrics as am
+left join venue_diversity as vd
+    on am.artist_id = vd.artist_id

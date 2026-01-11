@@ -99,4 +99,3 @@ SELECT
 
 FROM daily_ticket_metrics
 ORDER BY sale_date DESC, daily_revenue DESC
-

@@ -52,9 +52,7 @@ select
     v.first_show_date,
     v.last_show_date,
     coalesce(u.upcoming_shows, 0) as upcoming_shows,
-    case
-        when u.upcoming_shows > 0 then true
-        else false
-    end as has_upcoming_shows
-from venue_performance v
-left join upcoming_venues u on v.venue_id = u.venue_id
+    coalesce(u.upcoming_shows, 0) > 0 as has_upcoming_shows
+from venue_performance as v
+left join upcoming_venues as u
+    on v.venue_id = u.venue_id

@@ -37,6 +37,6 @@ select
     a.total_tickets_sold,
     coalesce(f.upcoming_shows, 0) as upcoming_shows,
     coalesce(f.upcoming_shows, 0) > 0 as has_upcoming_shows
-from all_artists a
-left join future_artists f
+from all_artists as a
+left join future_artists as f
     on a.artist_name = f.artist_name

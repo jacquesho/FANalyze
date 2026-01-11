@@ -16,10 +16,14 @@ with show_lifecycle as (
 
         -- Lifecycle tracking
         case
-            when fs.show_date < current_date
-                and fs.show_status = 'Upcoming' then 'Needs Status Update'
-            when fs.show_date >= current_date
-                and fs.show_status = 'Historical' then 'Needs Status Update'
+            when
+                fs.show_date < current_date
+                and fs.show_status = 'Upcoming' then
+                'Needs Status Update'
+            when
+                fs.show_date >= current_date
+                and fs.show_status = 'Historical' then
+                'Needs Status Update'
             else 'Status Current'
         end as status_consistency,
 
@@ -27,8 +31,10 @@ with show_lifecycle as (
         case
             when fs.show_status = 'Upcoming' then
                 case
-                    when fs.tickets_sold is not null and fs.revenue is not null then 'Complete'
-                    when fs.tickets_sold is not null or fs.revenue is not null then 'Partial'
+                    when fs.tickets_sold is not null
+                        and fs.revenue is not null then 'Complete'
+                    when fs.tickets_sold is not null
+                        or fs.revenue is not null then 'Partial'
                     else 'Basic'
                 end
             else 'Historical'
@@ -36,11 +42,14 @@ with show_lifecycle as (
 
         -- Update priority
         case
-            when fs.show_date < current_date
+            when
+                fs.show_date < current_date
                 and fs.show_status = 'Upcoming' then 'High'
-            when fs.show_date <= current_date + interval '7 days'
+            when
+                fs.show_date <= current_date + interval '7 days'
                 and fs.tickets_sold is null then 'Medium'
-            when fs.show_date <= current_date + interval '30 days'
+            when
+                fs.show_date <= current_date + interval '30 days'
                 and fs.tickets_sold is null then 'Low'
             else 'None'
         end as update_priority

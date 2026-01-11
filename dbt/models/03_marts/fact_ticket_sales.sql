@@ -51,7 +51,6 @@ WITH ticket_sales_staging AS (
         -- Revenue per ticket calculation
         CASE
             WHEN tickets_sold > 0 THEN ROUND(revenue / tickets_sold, 2)
-            ELSE NULL
         END AS revenue_per_ticket
 
     FROM {{ ref('int_ticket_sales_dedup') }}

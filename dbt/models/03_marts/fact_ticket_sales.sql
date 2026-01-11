@@ -59,7 +59,8 @@ WITH ticket_sales_staging AS (
     {% if is_incremental() %}
         -- Only process new records since last run (with safe fallback on first load)
         WHERE ts.timestamp >= COALESCE(
-            (SELECT MAX(timestamp) FROM {{ this }}), '1970-01-01'::timestamp
+            (SELECT MAX(fact.timestamp) FROM {{ this }} AS fact),
+            '1970-01-01'::timestamp
         )
     {% endif %}
 )

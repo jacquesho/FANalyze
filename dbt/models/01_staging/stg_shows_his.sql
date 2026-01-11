@@ -16,11 +16,15 @@ cleaned_data as (
         -- Dates
         case
             when show_date like '%/%' then
-                try_cast(concat(
-                    split_part(show_date, '/', 3), '-',
-                    lpad(split_part(show_date, '/', 1), 2, '0'), '-',
-                    lpad(split_part(show_date, '/', 2), 2, '0')
-                ) as date)
+                try_cast(
+                    concat(
+                        split_part(show_date, '/', 3),
+                        '-',
+                        lpad(split_part(show_date, '/', 1), 2, '0'),
+                        '-',
+                        lpad(split_part(show_date, '/', 2), 2, '0')
+                    ) as date
+                )
             else try_cast(show_date as date)
         end as show_date,
 
@@ -56,9 +60,33 @@ cleaned_data as (
         ingested_at
 
     from source_data
-    where show_date is not null
-      and artist_name is not null
-      and venue_name is not null
+    where
+        show_date is not null
+        and artist_name is not null
+        and venue_name is not null
 )
 
-select * from cleaned_data
+select
+    artist_id,
+    artist_name,
+    show_id,
+    venue_id,
+    venue_name,
+    show_date,
+    city_name,
+    state_code,
+    country_name,
+    market_size,
+    venue_type,
+    venue_capacity,
+    artist_tier,
+    tickets_sold,
+    is_sellout,
+    attendance_rate,
+    average_ticket_price,
+    ticket_price_range,
+    revenue,
+    source,
+    last_updated,
+    ingested_at
+from cleaned_data

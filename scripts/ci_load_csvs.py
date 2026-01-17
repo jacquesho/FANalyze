@@ -382,14 +382,14 @@ def load_csv_to_snowflake(csv_path, table_name):
             insert_columns = [col for col in df.columns if col.upper() != "INGESTED_AT"]
         else:
             insert_columns = df.columns
-        
+
         columns_upper = [f'"{col.upper()}"' for col in insert_columns]
         placeholders = ", ".join(["%s"] * len(insert_columns))
         insert_sql = (
             f"INSERT INTO FAN_RAW.{table_name} ({', '.join(columns_upper)}) "
             f"VALUES ({placeholders})"
         )
-        
+
         # Filter data_to_insert to match insert_columns (exclude INGESTED_AT for raw_tickets)
         if is_raw_tickets:
             ingested_at_idx = None
@@ -401,7 +401,11 @@ def load_csv_to_snowflake(csv_path, table_name):
                 filtered_data = []
                 for row_tuple in data_to_insert:
                     filtered_data.append(
-                        tuple(val for i, val in enumerate(row_tuple) if i != ingested_at_idx)
+                        tuple(
+                            val
+                            for i, val in enumerate(row_tuple)
+                            if i != ingested_at_idx
+                        )
                     )
                 data_to_insert = filtered_data
 

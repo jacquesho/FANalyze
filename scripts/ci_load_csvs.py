@@ -194,7 +194,9 @@ def load_csv_to_snowflake(csv_path, table_name):
         create_schema_if_not_exists(conn)
 
         # Add ingested_at timestamp only if column doesn't exist
-        if "INGESTED_AT" not in df.columns:
+        # Note: raw_tickets table uses synced_at (with DEFAULT), not ingested_at
+        is_raw_tickets = table_name.upper() == "RAW_TICKETS"
+        if not is_raw_tickets and "INGESTED_AT" not in df.columns:
             df["INGESTED_AT"] = datetime.now()
 
         # Drop and recreate table to ensure correct schema
@@ -373,14 +375,34 @@ def load_csv_to_snowflake(csv_path, table_name):
             data_to_insert.append(tuple(row_data))
 
         # Build INSERT statement
-        # Note: synced_at has DEFAULT in table, so it's optional in INSERT
-        # Use all columns from CSV (synced_at will use default if not present)
-        columns_upper = [f'"{col.upper()}"' for col in df.columns]
-        placeholders = ", ".join(["%s"] * len(df.columns))
+        # Note: raw_tickets table doesn't have INGESTED_AT (uses synced_at with DEFAULT)
+        # Exclude INGESTED_AT from INSERT for raw_tickets table
+        if is_raw_tickets:
+            insert_columns = [col for col in df.columns if col.upper() != "INGESTED_AT"]
+        else:
+            insert_columns = df.columns
+        
+        columns_upper = [f'"{col.upper()}"' for col in insert_columns]
+        placeholders = ", ".join(["%s"] * len(insert_columns))
         insert_sql = (
             f"INSERT INTO FAN_RAW.{table_name} ({', '.join(columns_upper)}) "
             f"VALUES ({placeholders})"
         )
+        
+        # Filter data_to_insert to match insert_columns (exclude INGESTED_AT for raw_tickets)
+        if is_raw_tickets:
+            ingested_at_idx = None
+            for i, col in enumerate(df.columns):
+                if col.upper() == "INGESTED_AT":
+                    ingested_at_idx = i
+                    break
+            if ingested_at_idx is not None:
+                filtered_data = []
+                for row_tuple in data_to_insert:
+                    filtered_data.append(
+                        tuple(val for i, val in enumerate(row_tuple) if i != ingested_at_idx)
+                    )
+                data_to_insert = filtered_data
 
         # Insert in batches
         cursor.executemany(insert_sql, data_to_insert)

@@ -26,6 +26,19 @@ def get_dbt_snowflake_env_vars():
     }
 
 
+def get_snowflake_env_vars():
+    """Get Snowflake environment variables from Airflow connections for ingestion script"""
+    return {
+        "SNOWFLAKE_ACCOUNT": "{{ conn.snowflake_default.extra_dejson.account }}",
+        "SNOWFLAKE_USER": "{{ conn.snowflake_default.login }}",
+        "SNOWFLAKE_ROLE": "{{ conn.snowflake_default.extra_dejson.role }}",
+        "SNOWFLAKE_WAREHOUSE": "{{ conn.snowflake_default.extra_dejson.warehouse }}",
+        "SNOWFLAKE_DATABASE": "{{ conn.snowflake_default.extra_dejson.database }}",
+        "SNOWFLAKE_SCHEMA": "{{ conn.snowflake_default.schema }}",
+        "SNOWFLAKE_KEYPAIR_PATH": "/opt/airflow/.secrets/rsa_key.p8",
+    }
+
+
 @dag(
     dag_id="pipeline_batch",
     schedule="0 2 * * *",  # Daily at 2 AM
@@ -45,7 +58,7 @@ def batch_pipeline_dag():
     Orchestrates CSV batch data ingestion and dbt transformations
     """
 
-    @task.bash
+    @task.bash(env={**get_snowflake_env_vars()})
     def clear_snowflake_schemas() -> str:
         """
         Task 1: Clear Snowflake schemas for clean state
@@ -56,7 +69,7 @@ def batch_pipeline_dag():
         python -m scripts.clear_snowflake_schemas
         """
 
-    @task.bash
+    @task.bash(env={**get_snowflake_env_vars()})
     def ingest_csv_to_snowflake() -> str:
         """
         Task 2: Ingest CSV files to Snowflake FAN_RAW schema

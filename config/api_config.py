@@ -110,9 +110,12 @@ def get_snowflake_connection():
             # Try to get project root - check if we're in Airflow container first
             if os.path.exists("/opt/airflow/.secrets"):
                 # Running in Airflow container
-                private_key_path = os.path.join(
-                    "/opt/airflow", keypair_path.lstrip("./")
-                )
+                # Remove leading "./" but preserve ".secrets" directory name
+                normalized_path = keypair_path.lstrip("./") if keypair_path.startswith("./") else keypair_path
+                # If normalized path doesn't start with .secrets, it was stripped - restore it
+                if keypair_path.startswith(".secrets") and not normalized_path.startswith(".secrets"):
+                    normalized_path = ".secrets/" + normalized_path
+                private_key_path = os.path.join("/opt/airflow", normalized_path)
             elif __file__:
                 # Running locally - go up from config/ directory to project root
                 project_root = os.path.dirname(

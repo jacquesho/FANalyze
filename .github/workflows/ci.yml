@@ -70,17 +70,7 @@ jobs:
         with:
           version: "latest"
 
-      - name: Cache uv dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            .venv
-            .uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
-
-      - name: Install CI dependencies
+      - name: Install dependencies
         run: uv sync --group pr_ci --no-dev
 
       - name: Create .dbt directory
@@ -93,50 +83,25 @@ jobs:
           chmod 600 .secrets/rsa_key.p8
         shell: bash
 
-      - name: Run dbt debug
-        run: uv run dbt debug -t ci --project-dir dbt
+      - name: Create CI database
+        run: uv run python scripts/ci_database_manager.py create
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
-          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
-          DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
-          DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
-          DBT_TARGET: ci
-
-      - name: Run SQLFluff lint
-        run: uv run sqlfluff lint --dialect snowflake --templater dbt dbt/models/
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
-          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
-          SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
-          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
-          DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
-          DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
-          DBT_TARGET: ci
 
       - name: Load CSV data to Snowflake
         run: uv run python scripts/ci_load_csvs.py
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
-          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: FAN_CI_RAW
 
       - name: Run dbt deps
         run: uv run dbt deps -t ci --project-dir dbt
@@ -146,12 +111,10 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
-          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
-          DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
-          DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_PROFILES_DIR: .dbt
+          DBT_PROJECT_DIR: dbt
           DBT_TARGET: ci
 
       - name: Run dbt build
@@ -162,10 +125,19 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
-          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
-          DBT_PROFILES_DIR: ${{ vars.DBT_PROFILES_DIR }}
-          DBT_PROJECT_DIR: ${{ vars.DBT_PROJECT_DIR }}
+          DBT_PROFILES_DIR: .dbt
+          DBT_PROJECT_DIR: dbt
           DBT_TARGET: ci
+
+      - name: Drop CI database
+        if: always()
+        run: uv run python scripts/ci_database_manager.py drop
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}

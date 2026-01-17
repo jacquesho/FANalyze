@@ -53,8 +53,8 @@ def get_snowflake_connection():
         user=os.getenv("SNOWFLAKE_USER"),
         account=os.getenv("SNOWFLAKE_ACCOUNT"),
         warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-        database=os.getenv("SNOWFLAKE_DATABASE"),
-        schema="FAN_CI_RAW",  # CI-specific raw schema
+        database="FANALYZE_CI",  # CI database
+        schema="FAN_RAW",  # Standard schema name
         role=os.getenv("SNOWFLAKE_ROLE"),
         private_key=private_key_der,
         authenticator="snowflake",
@@ -63,13 +63,13 @@ def get_snowflake_connection():
 
 
 def create_schema_if_not_exists(conn):
-    """Create FAN_CI_RAW schema if it doesn't exist"""
+    """Create FAN_RAW schema if it doesn't exist"""
     cursor = conn.cursor()
     try:
-        cursor.execute("CREATE SCHEMA IF NOT EXISTS FAN_CI_RAW")
-        print("✅ Schema FAN_CI_RAW created or already exists")
+        cursor.execute("CREATE SCHEMA IF NOT EXISTS FAN_RAW")
+        print("✅ Schema FAN_RAW created or already exists")
     except Exception as e:
-        print(f"❌ Error creating schema FAN_CI_RAW: {e}")
+        print(f"❌ Error creating schema FAN_RAW: {e}")
         raise
     finally:
         cursor.close()
@@ -114,16 +114,16 @@ def create_table_if_not_exists(conn, table_name, df):
         columns.append('"INGESTED_AT" TIMESTAMP_NTZ')
 
     create_sql = f"""
-    CREATE TABLE IF NOT EXISTS FAN_CI_RAW.{table_name} (
+    CREATE TABLE IF NOT EXISTS FAN_RAW.{table_name} (
         {", ".join(columns)}
     )
     """
 
     try:
         cursor.execute(create_sql)
-        print(f"✅ Table FAN_CI_RAW.{table_name} created or already exists")
+        print(f"✅ Table FAN_RAW.{table_name} created or already exists")
     except Exception as e:
-        print(f"❌ Error creating table FAN_CI_RAW.{table_name}: {e}")
+        print(f"❌ Error creating table FAN_RAW.{table_name}: {e}")
         raise
     finally:
         cursor.close()
@@ -161,14 +161,14 @@ def load_csv_to_snowflake(csv_path, table_name):
 
         # Drop and recreate table to ensure correct schema
         cursor = conn.cursor()
-        cursor.execute(f"DROP TABLE IF EXISTS FAN_CI_RAW.{table_name}")
-        print(f"🔄 Dropped existing table FAN_CI_RAW.{table_name} (if existed)")
+        cursor.execute(f"DROP TABLE IF EXISTS FAN_RAW.{table_name}")
+        print(f"🔄 Dropped existing table FAN_RAW.{table_name} (if existed)")
 
         # Recreate table with correct schema
         create_table_if_not_exists(conn, table_name, df)
 
         # Insert data
-        print(f"📤 Inserting {len(df)} rows into FAN_CI_RAW.{table_name}")
+        print(f"📤 Inserting {len(df)} rows into FAN_RAW.{table_name}")
 
         # Convert DataFrame to list of tuples, handling NaN values
         data_to_insert = []
@@ -230,7 +230,7 @@ def load_csv_to_snowflake(csv_path, table_name):
         columns_upper = [f'"{col.upper()}"' for col in df.columns]
         placeholders = ", ".join(["%s"] * len(df.columns))
         insert_sql = (
-            f"INSERT INTO FAN_CI_RAW.{table_name} ({', '.join(columns_upper)}) "
+            f"INSERT INTO FAN_RAW.{table_name} ({', '.join(columns_upper)}) "
             f"VALUES ({placeholders})"
         )
 
@@ -238,7 +238,7 @@ def load_csv_to_snowflake(csv_path, table_name):
         cursor.executemany(insert_sql, data_to_insert)
         conn.commit()
 
-        print(f"✅ Successfully loaded {len(df)} rows into FAN_CI_RAW.{table_name}")
+        print(f"✅ Successfully loaded {len(df)} rows into FAN_RAW.{table_name}")
         cursor.close()
         return True
 
@@ -251,7 +251,7 @@ def load_csv_to_snowflake(csv_path, table_name):
 
 def main():
     """Main function to load CSV files"""
-    print("🚀 CI CSV Loader - Loading data into FAN_CI_RAW schema")
+    print("🚀 CI CSV Loader - Loading data into FANALYZE_CI.FAN_RAW schema")
     print("=" * 60)
 
     # CSV file mappings

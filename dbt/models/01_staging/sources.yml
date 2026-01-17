@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: FAN_RAW
     database: "{{ target.database }}"
-    schema: "{{ 'FAN_CI_RAW' if target.name == 'ci' else 'FAN_RAW' }}"
+    schema: "FAN_RAW"
     description: "Raw data sources for events and ticket sales"
     tables:
       - name: shows_his

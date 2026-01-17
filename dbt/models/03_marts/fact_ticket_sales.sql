@@ -4,7 +4,7 @@
 {{ config(
     materialized='incremental',
     unique_key='ticket_sales_key',
-    schema='marts',
+    schema='MARTS',
     incremental_strategy='merge'
 ) }}
 

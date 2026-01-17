@@ -69,10 +69,13 @@ def create_ci_database():
         cursor.execute("USE DATABASE FANALYZE_CI")
 
         # Create required schemas
-        schemas = ["FAN_RAW", "STAGING", "INTERMEDIATE", "MARTS"]
+        # Note: dbt will create FAN_STAGING, FAN_INTERMEDIATE, FAN_MARTS automatically
+        # We only need to create FAN_RAW here
+        schemas = ["FAN_RAW"]
         for schema in schemas:
             cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
             print(f"✅ Created schema {schema}")
+        # dbt will create FAN_STAGING, FAN_INTERMEDIATE, FAN_MARTS when models run
 
         cursor.close()
         conn.close()

@@ -3,7 +3,7 @@
 
 {{ config(
     materialized='table',
-    schema='marts'
+    schema='MARTS'
 ) }}
 
 WITH show_performance AS (

@@ -1,4 +1,4 @@
-{{ config(materialized='table', schema='marts') }}
+{{ config(materialized='table', schema='MARTS') }}
 
 select
     venue_id,

@@ -1,4 +1,4 @@
-{{ config(materialized='table', schema='intermediate') }}
+{{ config(materialized='table', schema='INTERMEDIATE') }}
 
 with venue_performance as (
     select

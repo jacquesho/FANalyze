@@ -1,4 +1,4 @@
-{{ config(materialized='table', schema='marts') }}
+{{ config(materialized='table', schema='MARTS') }}
 
 with show_lifecycle as (
     select

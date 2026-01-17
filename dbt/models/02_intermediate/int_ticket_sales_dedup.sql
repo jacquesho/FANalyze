@@ -4,7 +4,7 @@
 
 {{ config(
     materialized='table',
-    schema='intermediate'
+    schema='INTERMEDIATE'
 ) }}
 
 WITH ranked AS (

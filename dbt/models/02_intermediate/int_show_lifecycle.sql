@@ -1,4 +1,4 @@
-{{ config(materialized='table', schema='intermediate') }}
+{{ config(materialized='table', schema='INTERMEDIATE') }}
 
 with show_status_updates as (
     -- Shows that have moved from upcoming to historical

@@ -1,4 +1,4 @@
-{{ config(materialized='view', schema='staging') }}
+{{ config(materialized='view', schema='STAGING') }}
 
 with source_data as (
     select * from {{ source('FAN_RAW', 'shows_future') }}

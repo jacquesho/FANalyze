@@ -3,7 +3,7 @@
 
 {{ config(
     materialized='table',
-    schema='staging'
+    schema='STAGING'
 ) }}
 
 WITH cleaned_ticket_sales AS (

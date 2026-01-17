@@ -180,8 +180,33 @@ def load_csv_to_snowflake(csv_path, table_name):
                     row_data.append(None)
                 else:
                     col_lower = col.lower()
+                    # Convert date strings to Snowflake-compatible format (YYYY-MM-DD)
+                    if "date" in col_lower and "str" not in col_lower:
+                        val_str = str(val)
+                        try:
+                            # Try parsing with pandas (handles various formats including DD-MM-YYYY)
+                            if isinstance(val, (datetime, pd.Timestamp)):
+                                dt = pd.to_datetime(val)
+                            else:
+                                # Try parsing with dayfirst=True for DD-MM-YYYY format
+                                dt = pd.to_datetime(val_str, dayfirst=True, errors='coerce')
+                                if pd.isna(dt):
+                                    # Fallback to standard parsing
+                                    dt = pd.to_datetime(val_str, errors='coerce')
+                            
+                            if not pd.isna(dt):
+                                # Format as DATE: YYYY-MM-DD
+                                val_str = dt.strftime("%Y-%m-%d")
+                            else:
+                                # If parsing fails, keep original string
+                                val_str = str(val)
+                        except Exception:
+                            # Fallback: keep original string if parsing fails
+                            val_str = str(val)
+                        
+                        row_data.append(val_str)
                     # Convert timestamp strings to Snowflake-compatible format
-                    if (
+                    elif (
                         "updated" in col_lower
                         or "created" in col_lower
                         or "timestamp" in col_lower

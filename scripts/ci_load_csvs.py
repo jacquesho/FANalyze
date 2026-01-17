@@ -107,7 +107,9 @@ def create_table_if_not_exists(conn, table_name, df):
         """
         try:
             cursor.execute(create_sql)
-            print(f"✅ Table FAN_RAW.{table_name} created or already exists (special structure)")
+            print(
+                f"✅ Table FAN_RAW.{table_name} created or already exists (special structure)"
+            )
         except Exception as e:
             print(f"❌ Error creating table FAN_RAW.{table_name}: {e}")
             raise
@@ -209,7 +211,7 @@ def load_csv_to_snowflake(csv_path, table_name):
         # Convert DataFrame to list of tuples, handling NaN values
         data_to_insert = []
         is_raw_tickets = table_name.upper() == "RAW_TICKETS"
-        
+
         for _, row in df.iterrows():
             row_data = []
             for col in df.columns:
@@ -219,16 +221,26 @@ def load_csv_to_snowflake(csv_path, table_name):
                 else:
                     col_lower = col.lower()
                     col_upper = col.upper()
-                    
+
                     # Special handling for raw_tickets table
                     if is_raw_tickets:
-                        if col_upper == "ID" or col_upper in ["TICKETS_SOLD", "CUMULATIVE_TICKETS_SOLD", "VENUE_CAPACITY", "DAYS_UNTIL_SHOW"]:
+                        if col_upper == "ID" or col_upper in [
+                            "TICKETS_SOLD",
+                            "CUMULATIVE_TICKETS_SOLD",
+                            "VENUE_CAPACITY",
+                            "DAYS_UNTIL_SHOW",
+                        ]:
                             # INTEGER columns
                             try:
                                 row_data.append(int(val))
                             except (ValueError, TypeError):
                                 row_data.append(None)
-                        elif col_upper in ["REVENUE", "CUMULATIVE_REVENUE", "SALES_RATE", "AVERAGE_TICKET_PRICE"]:
+                        elif col_upper in [
+                            "REVENUE",
+                            "CUMULATIVE_REVENUE",
+                            "SALES_RATE",
+                            "AVERAGE_TICKET_PRICE",
+                        ]:
                             # DECIMAL columns
                             try:
                                 row_data.append(float(val))
@@ -240,9 +252,11 @@ def load_csv_to_snowflake(csv_path, table_name):
                                 if isinstance(val, (datetime, pd.Timestamp)):
                                     dt = pd.to_datetime(val)
                                 else:
-                                    dt = pd.to_datetime(str(val), dayfirst=True, errors='coerce')
+                                    dt = pd.to_datetime(
+                                        str(val), dayfirst=True, errors="coerce"
+                                    )
                                     if pd.isna(dt):
-                                        dt = pd.to_datetime(str(val), errors='coerce')
+                                        dt = pd.to_datetime(str(val), errors="coerce")
                                 if not pd.isna(dt):
                                     row_data.append(dt.strftime("%Y-%m-%d"))
                                 else:
@@ -255,7 +269,7 @@ def load_csv_to_snowflake(csv_path, table_name):
                                 if isinstance(val, (datetime, pd.Timestamp)):
                                     dt = pd.to_datetime(val)
                                 else:
-                                    dt = pd.to_datetime(str(val), errors='coerce')
+                                    dt = pd.to_datetime(str(val), errors="coerce")
                                 if not pd.isna(dt):
                                     # Ensure timezone info (assume UTC if missing)
                                     if dt.tzinfo is None:
@@ -264,15 +278,21 @@ def load_csv_to_snowflake(csv_path, table_name):
                                     # Snowflake accepts ISO format with timezone
                                     iso_str = dt.isoformat()
                                     # Convert to Snowflake format: YYYY-MM-DD HH:MI:SS+TZ:00
-                                    if '+' in iso_str or iso_str.endswith('Z'):
+                                    if "+" in iso_str or iso_str.endswith("Z"):
                                         # Already has timezone
-                                        row_data.append(iso_str.replace('T', ' ').replace('Z', '+00:00'))
+                                        row_data.append(
+                                            iso_str.replace("T", " ").replace(
+                                                "Z", "+00:00"
+                                            )
+                                        )
                                     else:
                                         # Add UTC timezone
-                                        row_data.append(iso_str.replace('T', ' ') + '+00:00')
+                                        row_data.append(
+                                            iso_str.replace("T", " ") + "+00:00"
+                                        )
                                 else:
                                     row_data.append(None)
-                            except Exception as e:
+                            except Exception:
                                 # Fallback: try to parse as string
                                 val_str = str(val)
                                 row_data.append(val_str)
@@ -288,11 +308,13 @@ def load_csv_to_snowflake(csv_path, table_name):
                                 dt = pd.to_datetime(val)
                             else:
                                 # Try parsing with dayfirst=True for DD-MM-YYYY format
-                                dt = pd.to_datetime(val_str, dayfirst=True, errors='coerce')
+                                dt = pd.to_datetime(
+                                    val_str, dayfirst=True, errors="coerce"
+                                )
                                 if pd.isna(dt):
                                     # Fallback to standard parsing
-                                    dt = pd.to_datetime(val_str, errors='coerce')
-                            
+                                    dt = pd.to_datetime(val_str, errors="coerce")
+
                             if not pd.isna(dt):
                                 # Format as DATE: YYYY-MM-DD
                                 val_str = dt.strftime("%Y-%m-%d")
@@ -302,7 +324,7 @@ def load_csv_to_snowflake(csv_path, table_name):
                         except Exception:
                             # Fallback: keep original string if parsing fails
                             val_str = str(val)
-                        
+
                         row_data.append(val_str)
                     # Convert timestamp strings to Snowflake-compatible format
                     elif (
@@ -384,7 +406,7 @@ def main():
     csv_files = {
         "shows_history.csv": "SHOWS_HIS",
         "shows_future.csv": "SHOWS_FUTURE",
-        "tickets_sample.csv": "raw_tickets"
+        "tickets_sample.csv": "raw_tickets",
     }
 
     success_count = 0

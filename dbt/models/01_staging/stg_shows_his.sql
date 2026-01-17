@@ -43,17 +43,18 @@ cleaned_data as (
         artist_tier,
 
         -- Ticket sales
-        try_cast(tickets_sold as int) as tickets_sold,
+        -- Note: CSV columns are NUMBER(19,0), cast via VARCHAR to avoid TRY_CAST precision mismatch
+        try_cast(tickets_sold::VARCHAR as INTEGER) as tickets_sold,
         case
             when lower(sellout_status) = 'true' then true
             when lower(sellout_status) = 'false' then false
         end as is_sellout,
-        try_cast(attendance_rate as float) as attendance_rate,
+        try_cast(attendance_rate::VARCHAR as FLOAT) as attendance_rate,
 
         -- Pricing
-        try_cast(average_ticket_price as float) as average_ticket_price,
+        try_cast(average_ticket_price::VARCHAR as FLOAT) as average_ticket_price,
         ticket_price_range,
-        try_cast(revenue as float) as revenue,
+        try_cast(revenue::VARCHAR as FLOAT) as revenue,
 
         -- Metadata
         source,

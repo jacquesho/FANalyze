@@ -174,8 +174,9 @@ def load_csv_to_snowflake(csv_path, table_name):
     # Read CSV
     try:
         df = pd.read_csv(csv_path)
-        # Replace empty strings with NaN to ensure proper NULL handling
+        # Replace empty strings and whitespace-only strings with NaN to ensure proper NULL handling
         df = df.replace("", pd.NA)
+        df = df.replace(r"^\s+$", pd.NA, regex=True)  # Replace whitespace-only strings
         print(f"   Loaded {len(df)} rows, {len(df.columns)} columns")
     except Exception as e:
         print(f"❌ Error reading CSV: {e}")

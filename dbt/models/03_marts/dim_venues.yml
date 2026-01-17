@@ -16,7 +16,7 @@ models:
         data_type: text
       
       - name: venue_capacity
-        data_type: text
+        data_type: number
       
       - name: city_name
         data_type: text

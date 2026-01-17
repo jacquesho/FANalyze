@@ -72,13 +72,13 @@ def test_snowflake_connection() -> None:
 if __name__ == "__main__":
     print("🔍 Testing Snowflake Connection...")
     print("=" * 50)
-    
+
     try:
         _load_env()
-        
+
         import snowflake.connector
         from cryptography.hazmat.primitives import serialization
-        
+
         # Get environment variables
         sf_user = os.getenv("SNOWFLAKE_USER")
         sf_account = os.getenv("SNOWFLAKE_ACCOUNT")
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         sf_schema = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
         sf_role = os.getenv("SNOWFLAKE_ROLE")
         sf_private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
-        
+
         # Resolve relative paths relative to project root (same as config/api_config.py logic)
         if sf_private_key_path and not os.path.isabs(sf_private_key_path):
             project_root = Path(__file__).resolve().parents[2]
@@ -97,7 +97,7 @@ if __name__ == "__main__":
             else:
                 normalized_path = sf_private_key_path
             sf_private_key_path = os.path.join(str(project_root), normalized_path)
-        
+
         # Check required variables
         print("📋 Configuration:")
         print(f"   User: {sf_user}")
@@ -105,18 +105,24 @@ if __name__ == "__main__":
         if sf_account:
             if "." not in sf_account:
                 print("   ⚠️  WARNING: Account identifier missing region suffix!")
-                print(f"      Expected format: {sf_account}.ap-southeast-1 (or your region)")
-            elif "_" in sf_account.split(".")[-1] or any(c.isupper() for c in sf_account.split(".")[-1] if "." in sf_account):
+                print(
+                    f"      Expected format: {sf_account}.ap-southeast-1 (or your region)"
+                )
+            elif "_" in sf_account.split(".")[-1] or any(
+                c.isupper() for c in sf_account.split(".")[-1] if "." in sf_account
+            ):
                 print("   ⚠️  WARNING: Region format may be incorrect!")
                 print(f"      Current: {sf_account}")
-                print(f"      Should be: {sf_account.split('.')[0]}.ap-southeast-1 (lowercase, hyphens)")
+                print(
+                    f"      Should be: {sf_account.split('.')[0]}.ap-southeast-1 (lowercase, hyphens)"
+                )
         print(f"   Warehouse: {sf_warehouse}")
         print(f"   Database: {sf_database}")
         print(f"   Schema: {sf_schema}")
         print(f"   Role: {sf_role}")
         print(f"   Key Path: {sf_private_key_path}")
         print()
-        
+
         if not (sf_user and sf_account and sf_private_key_path):
             print("❌ Missing required Snowflake environment variables:")
             if not sf_user:
@@ -125,32 +131,34 @@ if __name__ == "__main__":
                 print("   - SNOWFLAKE_ACCOUNT")
             if not sf_private_key_path:
                 print("   - SNOWFLAKE_PRIVATE_KEY_PATH")
-            print("\n⚠️  Please check your .env file for missing Snowflake configuration.")
+            print(
+                "\n⚠️  Please check your .env file for missing Snowflake configuration."
+            )
             exit(1)
-        
+
         # Check if key file exists
         if not os.path.exists(sf_private_key_path):
             print(f"❌ Private key file not found: {sf_private_key_path}")
             print(f"   (Resolved from: {os.getenv('SNOWFLAKE_PRIVATE_KEY_PATH')})")
             exit(1)
-        
+
         print("🔑 Loading private key...")
         with open(sf_private_key_path, "rb") as f:
             private_key_pem = f.read()
-        
+
         # Load and convert to DER format (same as api_config.py)
         private_key = serialization.load_pem_private_key(
             private_key_pem,
             password=None,
         )
-        
+
         # Convert to DER format for Snowflake connector
         private_key_der = private_key.private_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
-        
+
         # Normalize account identifier to lowercase (Snowflake requires lowercase regions)
         if sf_account and "." in sf_account:
             account_parts = sf_account.split(".", 1)
@@ -164,11 +172,13 @@ if __name__ == "__main__":
                     print(f"      From: {sf_account}")
                     print(f"      To:   {normalized_account}")
                     sf_account = normalized_account
-        
+
         print("🔌 Connecting to Snowflake...")
         print(f"   Attempting connection to: {sf_account}")
-        print(f"   Full connection URL would be: https://{sf_account}.snowflakecomputing.com")
-        
+        print(
+            f"   Full connection URL would be: https://{sf_account}.snowflakecomputing.com"
+        )
+
         # Try connection with DER format key and authenticator
         try:
             conn = snowflake.connector.connect(
@@ -194,15 +204,17 @@ if __name__ == "__main__":
                 )
             else:
                 raise
-        
+
         print("✅ Connected successfully!")
         print()
-        
+
         # Test queries
         cur = conn.cursor()
         try:
             # Get current user and role
-            cur.execute("SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA()")
+            cur.execute(
+                "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA()"
+            )
             user, role, wh, db, schema = cur.fetchone()
             print(f"👤 Current User: {user}")
             print(f"🎭 Current Role: {role}")
@@ -210,23 +222,23 @@ if __name__ == "__main__":
             print(f"💾 Current Database: {db}")
             print(f"📁 Current Schema: {schema}")
             print()
-            
+
             # Get Snowflake version
             cur.execute("SELECT CURRENT_VERSION()")
             version = cur.fetchone()[0]
             print(f"❄️  Snowflake Version: {version}")
             print()
-            
+
             print("=" * 50)
             print("✅ All tests passed! Connection is working correctly.")
-            
+
         except Exception as e:
             print(f"❌ Query execution failed: {e}")
             raise
         finally:
             cur.close()
             conn.close()
-            
+
     except FileNotFoundError as e:
         print(f"❌ File not found: {e}")
         exit(1)
@@ -235,7 +247,7 @@ if __name__ == "__main__":
         print(f"❌ Connection failed: {e}")
         print("\n💡 Troubleshooting tips:")
         print("   1. USER_SVC uses key-pair authentication - NO PASSWORD needed!")
-        
+
         if "404" in error_msg or "Not Found" in error_msg:
             print("   2. ⚠️  404 Error - Account identifier is incorrect:")
             print("      This means Snowflake can't find your account at that URL.")
@@ -248,12 +260,18 @@ if __name__ == "__main__":
             print("      c) Try these formats in your .env:")
             print("         - Just account: SNOWFLAKE_ACCOUNT=FE23702")
             print("         - With region: SNOWFLAKE_ACCOUNT=FE23702.ap-southeast-1")
-            print("         - Organization format: SNOWFLAKE_ACCOUNT=orgname-accountname")
-            print("      d) Verify account exists - check you're using the right account!")
-        
+            print(
+                "         - Organization format: SNOWFLAKE_ACCOUNT=orgname-accountname"
+            )
+            print(
+                "      d) Verify account exists - check you're using the right account!"
+            )
+
         print("   3. Verify your public key fingerprint matches:")
         print("      - In Snowflake: DESC USER USER_SVC;")
-        print("      - Local key: openssl rsa -pubin -in .secrets/rsa_key.pub -outform DER | openssl dgst -sha256 -binary | openssl enc -base64")
+        print(
+            "      - Local key: openssl rsa -pubin -in .secrets/rsa_key.pub -outform DER | openssl dgst -sha256 -binary | openssl enc -base64"
+        )
         print("   4. Check that USER_SVC has ROLE_ETL granted:")
         print("      SHOW GRANTS TO USER USER_SVC;")
         print("   5. Verify warehouse exists and is accessible:")

@@ -146,9 +146,7 @@ def _fetch_most_recent_shows(
         setlists = data.get("setlist", [])
 
         if not setlists:
-            console.print(
-                f"✅ No more setlists found on page {page}", style="green"
-            )
+            console.print(f"✅ No more setlists found on page {page}", style="green")
             break
 
         # Add shows until we reach max_shows

@@ -111,9 +111,15 @@ def get_snowflake_connection():
             if os.path.exists("/opt/airflow/.secrets"):
                 # Running in Airflow container
                 # Remove leading "./" but preserve ".secrets" directory name
-                normalized_path = keypair_path.lstrip("./") if keypair_path.startswith("./") else keypair_path
+                normalized_path = (
+                    keypair_path.lstrip("./")
+                    if keypair_path.startswith("./")
+                    else keypair_path
+                )
                 # If normalized path doesn't start with .secrets, it was stripped - restore it
-                if keypair_path.startswith(".secrets") and not normalized_path.startswith(".secrets"):
+                if keypair_path.startswith(
+                    ".secrets"
+                ) and not normalized_path.startswith(".secrets"):
                     normalized_path = ".secrets/" + normalized_path
                 private_key_path = os.path.join("/opt/airflow", normalized_path)
             elif __file__:

@@ -99,15 +99,15 @@ if __name__ == "__main__":
             sf_private_key_path = os.path.join(str(project_root), normalized_path)
         
         # Check required variables
-        print(f"📋 Configuration:")
+        print("📋 Configuration:")
         print(f"   User: {sf_user}")
         print(f"   Account: {sf_account}")
         if sf_account:
             if "." not in sf_account:
-                print(f"   ⚠️  WARNING: Account identifier missing region suffix!")
+                print("   ⚠️  WARNING: Account identifier missing region suffix!")
                 print(f"      Expected format: {sf_account}.ap-southeast-1 (or your region)")
             elif "_" in sf_account.split(".")[-1] or any(c.isupper() for c in sf_account.split(".")[-1] if "." in sf_account):
-                print(f"   ⚠️  WARNING: Region format may be incorrect!")
+                print("   ⚠️  WARNING: Region format may be incorrect!")
                 print(f"      Current: {sf_account}")
                 print(f"      Should be: {sf_account.split('.')[0]}.ap-southeast-1 (lowercase, hyphens)")
         print(f"   Warehouse: {sf_warehouse}")
@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 normalized_region = region.lower().replace("_", "-")
                 normalized_account = f"{account_locator}.{normalized_region}"
                 if normalized_account != sf_account:
-                    print(f"   🔧 Normalizing account identifier:")
+                    print("   🔧 Normalizing account identifier:")
                     print(f"      From: {sf_account}")
                     print(f"      To:   {normalized_account}")
                     sf_account = normalized_account
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             # If connection fails with 404, try without warehouse/database/schema/role
             # (these aren't required for initial connection)
             if "404" in str(conn_error) or "Not Found" in str(conn_error):
-                print(f"   ⚠️  Initial connection failed, trying minimal connection...")
+                print("   ⚠️  Initial connection failed, trying minimal connection...")
                 conn = snowflake.connector.connect(
                     user=sf_user,
                     account=sf_account,

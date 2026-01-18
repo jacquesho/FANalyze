@@ -135,7 +135,9 @@ def load_shows(rows: Iterable[Dict[str, Any]]) -> int:
         # Cleanup temp table
         cur.execute("DROP TABLE IF EXISTS tmp_stage_shows")
         conn.commit()
-        console.print(f"✅ Inserted {inserted} show rows into testing.raw_shows", style="green")
+        console.print(
+            f"✅ Inserted {inserted} show rows into testing.raw_shows", style="green"
+        )
         return inserted
     finally:
         cur.close()
@@ -173,7 +175,9 @@ def load_setlists(rows: Iterable[Dict[str, Any]]) -> int:
             )
             inserted += 1
             if inserted % 500 == 0:
-                console.print(f"   • Staged {inserted} setlist rows so far...", style="dim")
+                console.print(
+                    f"   • Staged {inserted} setlist rows so far...", style="dim"
+                )
 
         cur.execute(
             "INSERT INTO testing.raw_setlists (artist_id, artist_name, setlist_id, show_id, payload)\n"
@@ -182,10 +186,11 @@ def load_setlists(rows: Iterable[Dict[str, Any]]) -> int:
         )
         cur.execute("DROP TABLE IF EXISTS tmp_stage_setlists")
         conn.commit()
-        console.print(f"✅ Inserted {inserted} setlist rows into testing.raw_setlists", style="green")
+        console.print(
+            f"✅ Inserted {inserted} setlist rows into testing.raw_setlists",
+            style="green",
+        )
         return inserted
     finally:
         cur.close()
         conn.close()
-
-

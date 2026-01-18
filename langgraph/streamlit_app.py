@@ -58,8 +58,12 @@ def initialize_session_state():
                 st.success("✅ Agent initialized successfully!")
             except Exception as e:
                 st.error(f"❌ Failed to initialize agent: {e}")
-                st.info("💡 Make sure PostgreSQL is running and LangGraph database is set up.")
-                st.info("💡 Run: python langgraph/scripts/create_langgraph_service_user.py")
+                st.info(
+                    "💡 Make sure PostgreSQL is running and LangGraph database is set up."
+                )
+                st.info(
+                    "💡 Run: python langgraph/scripts/create_langgraph_service_user.py"
+                )
                 st.session_state.agent = None
 
     if "messages" not in st.session_state:
@@ -83,16 +87,16 @@ def initialize_session_state():
                 "user_name": st.session_state.user_name,
             }
         }
-    
+
     if "pending_query_approval" not in st.session_state:
         st.session_state.pending_query_approval = None
-    
+
     if "graph_image" not in st.session_state:
         st.session_state.graph_image = None
-    
+
     if "graph_question" not in st.session_state:
         st.session_state.graph_question = None
-    
+
     if "current_question" not in st.session_state:
         st.session_state.current_question = None
 
@@ -150,13 +154,15 @@ def get_agent_response(user_input: str):
 
         # Get agent response - handle interrupts for query approval
         result = st.session_state.agent.invoke(initial_state, config)
-        
+
         # Check for interrupt (expensive query needs approval)
         if "__interrupt__" in result:
             # Get the current state to extract query details
             current_state = st.session_state.agent.get_state(config)
-            state_value = current_state.values if hasattr(current_state, 'values') else {}
-            
+            state_value = (
+                current_state.values if hasattr(current_state, "values") else {}
+            )
+
             # Extract query info from the last message (tool_call)
             query_details = None
             if state_value.get("messages"):
@@ -168,7 +174,7 @@ def get_agent_response(user_input: str):
                         "tool_calls": last_msg.tool_calls,
                         "interrupt_value": result["__interrupt__"],
                     }
-            
+
             # Store interrupt info for UI display
             st.session_state.pending_query_approval = {
                 "interrupt_value": result["__interrupt__"],
@@ -178,7 +184,7 @@ def get_agent_response(user_input: str):
             }
             # Return special marker to trigger UI
             return "__QUERY_APPROVAL_NEEDED__"
-        
+
         # Normal response
         response = result["messages"][-1].content
 
@@ -296,7 +302,9 @@ def main():
         # Persistent storage info
         st.header("💾 Persistent Storage")
         st.write("**Database:** PostgreSQL")
-        st.write("**Status:** ✅ Connected" if st.session_state.agent else "❌ Not Connected")
+        st.write(
+            "**Status:** ✅ Connected" if st.session_state.agent else "❌ Not Connected"
+        )
         st.write("**Features:**")
         st.write("• Conversation persistence")
         st.write("• Thread isolation")
@@ -312,7 +320,9 @@ def main():
             "Tell me about Metallica's history",
         ]
         for query in example_queries:
-            if st.button(f"💬 {query}", key=f"example_{query}", use_container_width=True):
+            if st.button(
+                f"💬 {query}", key=f"example_{query}", use_container_width=True
+            ):
                 # Simulate user input
                 if prompt := st.chat_input("Type your message here..."):
                     pass  # This will be handled by the chat input below
@@ -321,28 +331,40 @@ def main():
         if st.button("🗑️ Clear Conversation", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
-        
+
         st.divider()
-        
+
         # Graph visualization
         st.header("📊 Graph Visualization")
         st.write("View the LangGraph workflow structure")
-        
+
         if st.button("🔄 Generate Graph", use_container_width=True):
             if st.session_state.agent:
                 try:
                     with st.spinner("Generating graph visualization..."):
-                        graph_png = st.session_state.agent.get_graph().draw_mermaid_png()
+                        graph_png = (
+                            st.session_state.agent.get_graph().draw_mermaid_png()
+                        )
                         st.session_state.graph_image = graph_png
                         # Store the current question or last user question if available
                         if st.session_state.current_question:
-                            st.session_state.graph_question = st.session_state.current_question
+                            st.session_state.graph_question = (
+                                st.session_state.current_question
+                            )
                         elif st.session_state.messages:
                             last_user_msg = next(
-                                (msg for msg in reversed(st.session_state.messages) if msg["role"] == "user"),
-                                None
+                                (
+                                    msg
+                                    for msg in reversed(st.session_state.messages)
+                                    if msg["role"] == "user"
+                                ),
+                                None,
                             )
-                            st.session_state.graph_question = last_user_msg["content"] if last_user_msg else "Graph generated"
+                            st.session_state.graph_question = (
+                                last_user_msg["content"]
+                                if last_user_msg
+                                else "Graph generated"
+                            )
                         else:
                             st.session_state.graph_question = "Graph generated"
                         st.success("✅ Graph generated!")
@@ -351,20 +373,20 @@ def main():
                     st.error(f"❌ Failed to generate graph: {e}")
             else:
                 st.warning("⚠️ Agent not initialized")
-        
+
         # Display stored graph if available
         if st.session_state.graph_image:
             st.write("**Generated for:**")
             st.info(st.session_state.graph_question)
             st.image(st.session_state.graph_image, use_container_width=True)
-            
+
             # Download button
             st.download_button(
                 label="📥 Download Graph",
                 data=st.session_state.graph_image,
                 file_name=f"fanalyze_graph_{int(time.time())}.png",
                 mime="image/png",
-                use_container_width=True
+                use_container_width=True,
             )
 
     # Main chat interface
@@ -383,30 +405,36 @@ def main():
             for msg in reversed(messages):
                 if hasattr(msg, "tool_calls") and msg.tool_calls:
                     # Regenerate query for display
-                    if not all([_generate_show_data_query, _generate_ticket_sales_query, analyze_query_complexity]):
+                    if not all(
+                        [
+                            _generate_show_data_query,
+                            _generate_ticket_sales_query,
+                            analyze_query_complexity,
+                        ]
+                    ):
                         query_info = None
                         break
-                    
+
                     tool_call = msg.tool_calls[0]
                     tool_name = tool_call["name"]
                     args = tool_call["args"]
-                    
+
                     if tool_name == "query_show_data":
                         query = _generate_show_data_query(
                             artist_name=args.get("artist_name"),
                             show_type=args.get("show_type", "all"),
-                            limit=args.get("limit", 50)
+                            limit=args.get("limit", 50),
                         )
                     elif tool_name == "query_ticket_sales":
                         query = _generate_ticket_sales_query(
                             artist_name=args.get("artist_name"),
                             venue_name=args.get("venue_name"),
                             hours=args.get("hours", 24),
-                            limit=args.get("limit", 50)
+                            limit=args.get("limit", 50),
                         )
                     else:
                         query = None
-                    
+
                     if query:
                         analysis = analyze_query_complexity(query)
                         query_info = {
@@ -416,7 +444,7 @@ def main():
                             "estimated_cost": analysis["estimated_cost"].upper(),
                         }
                     break
-        
+
         # Show approval UI as an assistant message (inline with conversation)
         with st.chat_message("assistant"):
             st.warning("⚠️ **Expensive Query Detected - Approval Required**")
@@ -431,34 +459,46 @@ def main():
                 else:
                     # Fallback to interrupt message if we can't extract query
                     st.markdown(pending["interrupt_value"])
-            
+
             col1, col2 = st.columns(2)
             approval_decision = None
-            
+
             with col1:
-                if st.button("✅ Approve Query", use_container_width=True, type="primary", key="approve_query"):
+                if st.button(
+                    "✅ Approve Query",
+                    use_container_width=True,
+                    type="primary",
+                    key="approve_query",
+                ):
                     approval_decision = "yes"
-            
+
             with col2:
-                if st.button("❌ Cancel Query", use_container_width=True, key="cancel_query"):
+                if st.button(
+                    "❌ Cancel Query", use_container_width=True, key="cancel_query"
+                ):
                     approval_decision = "no"
-            
+
             if approval_decision:
                 # Resume agent with user's decision
                 config = pending["config"]
                 with st.spinner("Processing..."):
                     result = st.session_state.agent.invoke(
-                        Command(resume=approval_decision), 
-                        config
+                        Command(resume=approval_decision), config
                     )
                     # Get response
                     if result.get("messages"):
                         final_response = result["messages"][-1].content
                     else:
-                        final_response = "Query executed successfully." if approval_decision == "yes" else "Query cancelled."
-                    
+                        final_response = (
+                            "Query executed successfully."
+                            if approval_decision == "yes"
+                            else "Query cancelled."
+                        )
+
                     # Add response to messages
-                    st.session_state.messages.append({"role": "assistant", "content": final_response})
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": final_response}
+                    )
                     st.session_state.pending_query_approval = None
                     st.rerun()
 
@@ -467,12 +507,14 @@ def main():
     if prompt := st.chat_input("Type your message here...", disabled=chat_disabled):
         # Don't process new messages if there's a pending approval
         if st.session_state.pending_query_approval:
-            st.warning("⚠️ Please approve or cancel the pending query before sending a new message.")
+            st.warning(
+                "⚠️ Please approve or cancel the pending query before sending a new message."
+            )
             st.stop()
-        
+
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
-        
+
         # Store the question for potential graph generation
         st.session_state.current_question = prompt
 
@@ -484,18 +526,22 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("Agent is thinking..."):
                 response = get_agent_response(prompt)
-                
+
                 # Check if query approval is needed
                 if response == "__QUERY_APPROVAL_NEEDED__":
                     # Approval UI will be shown inline - trigger rerun to display it
-                    st.info("⏳ Query requires approval. Please review the approval prompt below.")
+                    st.info(
+                        "⏳ Query requires approval. Please review the approval prompt below."
+                    )
                     # Rerun immediately to show the approval UI
                     st.rerun()
                 else:
                     # Normal response
                     st.markdown(response)
                     # Add agent response to chat history
-                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": response}
+                    )
 
     # Footer
     st.divider()
@@ -511,4 +557,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

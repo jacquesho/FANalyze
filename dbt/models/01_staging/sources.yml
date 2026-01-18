@@ -3,11 +3,10 @@ version: 2
 sources:
   - name: FAN_RAW
     database: "{{ target.database }}"
-    schema: FAN_RAW
+    schema: "FAN_RAW"
     description: "Raw data sources for events and ticket sales"
     tables:
       - name: shows_his
-        schema: FAN_RAW
         columns:
           - name: artist_id
             description: "Unique identifier for the artist"

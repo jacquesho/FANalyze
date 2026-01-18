@@ -3,7 +3,6 @@
 Test the document retrieval system with hybrid search and reranking.
 """
 
-import json
 import logging
 import os
 import sys
@@ -27,8 +26,7 @@ from rag.retrieval import DocumentRetriever
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -69,7 +67,11 @@ def test_retrieval(query: str, use_hybrid: bool = True, use_reranking: bool = Tr
         for i, result in enumerate(results["results"], 1):
             score = result.get("rerank_score") or result.get("similarity_score", 0)
             source = result.get("source", "Unknown")
-            text = result.get("text", "")[:300] + "..." if len(result.get("text", "")) > 300 else result.get("text", "")
+            text = (
+                result.get("text", "")[:300] + "..."
+                if len(result.get("text", "")) > 300
+                else result.get("text", "")
+            )
 
             print(f"\n[{i}] Score: {score:.4f}")
             print(f"    Source: {source}")
@@ -111,4 +113,3 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("✅ Testing completed!")
     print("=" * 60)
-

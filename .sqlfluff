@@ -1,0 +1,19 @@
+[sqlfluff]
+dialect = snowflake
+templater = dbt
+exclude_rules = ST06
+max_line_length = 100
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:rules:layout.long_lines]
+ignore_comment_lines = true
+
+[sqlfluff:rules:structure.column_order]
+wildcard_policy = single
+
+[sqlfluff:templater:dbt]
+profiles_dir = .dbt
+project_dir = dbt

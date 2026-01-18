@@ -30,16 +30,23 @@ def get_connection() -> psycopg.Connection | None:
         user = os.getenv("POSTGRES_USER_INGEST")
         password = os.getenv("POSTGRES_PASSWORD_INGEST")
 
-        missing = [name for name, val in [
-            ("POSTGRES_HOST", host),
-            ("POSTGRES_PORT", port),
-            ("POSTGRES_DB", dbname),
-            ("POSTGRES_USER_INGEST", user),
-            ("POSTGRES_PASSWORD_INGEST", password),
-        ] if not val]
+        missing = [
+            name
+            for name, val in [
+                ("POSTGRES_HOST", host),
+                ("POSTGRES_PORT", port),
+                ("POSTGRES_DB", dbname),
+                ("POSTGRES_USER_INGEST", user),
+                ("POSTGRES_PASSWORD_INGEST", password),
+            ]
+            if not val
+        ]
 
         if missing:
-            console.print("❌ Missing required environment variables: " + ", ".join(missing), style="red")
+            console.print(
+                "❌ Missing required environment variables: " + ", ".join(missing),
+                style="red",
+            )
             return None
 
         return psycopg.connect(
@@ -69,7 +76,9 @@ def set_session_timezone(connection: psycopg.Connection, timezone: str) -> bool:
 
 def show_session_info(connection: psycopg.Connection) -> None:
     with connection.cursor() as cursor:
-        cursor.execute("SELECT current_database(), current_user, inet_server_addr(), inet_server_port()")
+        cursor.execute(
+            "SELECT current_database(), current_user, inet_server_addr(), inet_server_port()"
+        )
         db_name, user_name, server_addr, server_port = cursor.fetchone()
 
         cursor.execute("SHOW TIMEZONE")
@@ -85,7 +94,14 @@ def show_session_info(connection: psycopg.Connection) -> None:
     table.add_column("Port", style="green")
     table.add_column("TimeZone", style="yellow")
     table.add_column("NOW()", style="yellow")
-    table.add_row(str(db_name), str(user_name), str(server_addr), str(server_port), str(tz), str(now_value))
+    table.add_row(
+        str(db_name),
+        str(user_name),
+        str(server_addr),
+        str(server_port),
+        str(tz),
+        str(now_value),
+    )
     console.print(table)
 
 
@@ -115,5 +131,3 @@ console = Console()
 if __name__ == "__main__":
     load_dotenv()
     sys.exit(main())
-
-

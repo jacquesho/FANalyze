@@ -73,7 +73,9 @@ def get_chunking_strategy(strategy_name: str) -> ChunkingStrategy:
     }
 
     if strategy_name not in strategies:
-        raise ValueError(f"Unknown chunking strategy: {strategy_name}. Available: {list(strategies.keys())}")
+        raise ValueError(
+            f"Unknown chunking strategy: {strategy_name}. Available: {list(strategies.keys())}"
+        )
 
     return strategies[strategy_name]
 
@@ -92,7 +94,3 @@ def chunk_text(text: str, strategy: str = "token", **kwargs) -> list[str]:
     """
     chunker = get_chunking_strategy(strategy)
     return chunker.chunk(text, **kwargs)
-
-
-
-

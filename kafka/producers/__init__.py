@@ -5,4 +5,4 @@ Business logic implementations for producing messages to Kafka
 
 from kafka.producers.ticket_producer import TicketProducer
 
-__all__ = ['TicketProducer']
+__all__ = ["TicketProducer"]

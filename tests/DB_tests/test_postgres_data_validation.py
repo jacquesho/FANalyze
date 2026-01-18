@@ -4,7 +4,6 @@ Data Validation Test for FANalyze 2.0 (Postgres)
 Tests data integrity and quality validation on Postgres-loaded data
 """
 
-import os
 import sys
 from pathlib import Path
 from rich.console import Console
@@ -19,9 +18,11 @@ console = Console()
 
 def test_data_validation():
     """Test data validation functionality."""
-    console.print("🔍 FANalyze 2.0 - Data Validation Test (Postgres)", style="bold blue")
+    console.print(
+        "🔍 FANalyze 2.0 - Data Validation Test (Postgres)", style="bold blue"
+    )
     console.print("=" * 50)
-    
+
     try:
         success = validate_data()
         if success:
@@ -48,5 +49,3 @@ def main():
 if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)
-
-

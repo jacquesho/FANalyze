@@ -15,7 +15,7 @@ from faker import Faker
 class TicketSaleRecord:
     id: int
     data_content: str  # serialized JSON payload of the ticket sale
-    file_name: str     # source file name for lineage
+    file_name: str  # source file name for lineage
 
 
 class FakeDataGenerator:
@@ -26,11 +26,20 @@ class FakeDataGenerator:
 
     def _generate_ticket_sale_payload(self, show_id: str, show_date: datetime) -> Dict:
         """Create a single fake ticket sale JSON payload."""
-        section = self.fake.random_element(["GA", "VIP", "A", "B", "C", "Upper" ])
+        section = self.fake.random_element(["GA", "VIP", "A", "B", "C", "Upper"])
         row = self.fake.random_int(min=1, max=40)
         seat = self.fake.random_int(min=1, max=30)
         quantity = self.fake.random_int(min=1, max=4)
-        price = round(self.fake.pyfloat(left_digits=2, right_digits=2, positive=True, min_value=25, max_value=350), 2)
+        price = round(
+            self.fake.pyfloat(
+                left_digits=2,
+                right_digits=2,
+                positive=True,
+                min_value=25,
+                max_value=350,
+            ),
+            2,
+        )
         fee = round(price * 0.12, 2)
         total = round((price + fee) * quantity, 2)
         purchase_dt = show_date - timedelta(days=self.fake.random_int(min=5, max=120))
@@ -38,9 +47,9 @@ class FakeDataGenerator:
         return {
             "sale_id": self.fake.uuid4(),
             "show_id": show_id,
-            "artist": self.fake.random_element([
-                "Metallica", "Taylor Swift", "Beyoncé", "Coldplay", "Ed Sheeran"
-            ]),
+            "artist": self.fake.random_element(
+                ["Metallica", "Taylor Swift", "Beyoncé", "Coldplay", "Ed Sheeran"]
+            ),
             "venue": self.fake.city() + " Arena",
             "city": self.fake.city(),
             "country": self.fake.country_code(),
@@ -56,15 +65,21 @@ class FakeDataGenerator:
             "show_date": show_date.date().isoformat(),
         }
 
-    def generate_historical_ticket_sales(self, count: int = 500) -> List[TicketSaleRecord]:
+    def generate_historical_ticket_sales(
+        self, count: int = 500
+    ) -> List[TicketSaleRecord]:
         """Generate historical ticket sales mapped to ingestion schema (id, data_content, file_name)."""
         records: List[TicketSaleRecord] = []
-        base_file_name = f"historical_ticket_sales_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        base_file_name = (
+            f"historical_ticket_sales_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        )
         target_file = f"{base_file_name}.csv"
 
         for idx in range(1, count + 1):
             show_id = self.fake.uuid4()
-            show_date = datetime.utcnow() - timedelta(days=self.fake.random_int(min=30, max=900))
+            show_date = datetime.utcnow() - timedelta(
+                days=self.fake.random_int(min=30, max=900)
+            )
             payload = self._generate_ticket_sale_payload(show_id, show_date)
             record = TicketSaleRecord(
                 id=idx,
@@ -75,7 +90,9 @@ class FakeDataGenerator:
 
         return records
 
-    def save_records_as_csv(self, records: List[TicketSaleRecord], filename: str) -> Path:
+    def save_records_as_csv(
+        self, records: List[TicketSaleRecord], filename: str
+    ) -> Path:
         """Save TicketSaleRecord list to CSV with columns id,data_content,file_name."""
         filepath = self.data_dir / f"{filename}.csv"
         with filepath.open("w", newline="", encoding="utf-8") as f:
@@ -85,7 +102,9 @@ class FakeDataGenerator:
                 writer.writerow([rec.id, rec.data_content, rec.file_name])
         return filepath
 
-    def save_records_as_jsonl(self, records: List[TicketSaleRecord], filename: str) -> Path:
+    def save_records_as_jsonl(
+        self, records: List[TicketSaleRecord], filename: str
+    ) -> Path:
         """Save TicketSaleRecord list to JSONL for optional downstream uses."""
         filepath = self.data_dir / f"{filename}.jsonl"
         with filepath.open("w", encoding="utf-8") as f:
@@ -96,10 +115,21 @@ class FakeDataGenerator:
 
 def main():
     parser = argparse.ArgumentParser(description="Generate fake ticket sales data")
-    parser.add_argument("--format", choices=["csv", "jsonl", "both"], default="jsonl", help="Output format")
-    parser.add_argument("--count", type=int, default=500, help="Number of records to generate")
-    parser.add_argument("--stream", action="store_true", help="Stream records (JSONL) one-by-one")
-    parser.add_argument("--rate", type=float, default=1.0, help="Records per second when streaming")
+    parser.add_argument(
+        "--format",
+        choices=["csv", "jsonl", "both"],
+        default="jsonl",
+        help="Output format",
+    )
+    parser.add_argument(
+        "--count", type=int, default=500, help="Number of records to generate"
+    )
+    parser.add_argument(
+        "--stream", action="store_true", help="Stream records (JSONL) one-by-one"
+    )
+    parser.add_argument(
+        "--rate", type=float, default=1.0, help="Records per second when streaming"
+    )
     args = parser.parse_args()
 
     generator = FakeDataGenerator()
@@ -109,7 +139,9 @@ def main():
         # Streaming mode writes JSONL and appends one record at a time
         filepath = generator.data_dir / f"{base_name}.jsonl"
         with filepath.open("w", encoding="utf-8") as f:
-            for idx, rec in enumerate(generator.generate_historical_ticket_sales(count=args.count), start=1):
+            for idx, rec in enumerate(
+                generator.generate_historical_ticket_sales(count=args.count), start=1
+            ):
                 f.write(json.dumps(asdict(rec)) + "\n")
                 f.flush()
                 print(f"⬇️ wrote record {idx} to {filepath}")

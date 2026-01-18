@@ -27,7 +27,9 @@ class Embedder:
         self.pc = Pinecone(api_key=api_key)
         logger.info("Initialized Pinecone embedder")
 
-    def embed_chunks(self, chunks: list[dict[str, Any]], batch_size: int = 96) -> list[list[float]]:
+    def embed_chunks(
+        self, chunks: list[dict[str, Any]], batch_size: int = 96
+    ) -> list[list[float]]:
         """
         Generate embeddings for document chunks using Pinecone's built-in embedding model.
 
@@ -52,7 +54,9 @@ class Embedder:
             for i in range(0, len(texts), batch_size):
                 batch_texts = texts[i : i + batch_size]
                 batch_num = i // batch_size + 1
-                logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch_texts)} texts)...")
+                logger.info(
+                    f"Processing batch {batch_num}/{total_batches} ({len(batch_texts)} texts)..."
+                )
 
                 response = self.pc.inference.embed(
                     model="llama-text-embed-v2",
@@ -63,7 +67,9 @@ class Embedder:
                 batch_embeddings = [item.values for item in response.data]
                 all_embeddings.extend(batch_embeddings)
 
-            logger.info(f"Generated {len(all_embeddings)} embeddings with {len(all_embeddings[0])} dimensions")
+            logger.info(
+                f"Generated {len(all_embeddings)} embeddings with {len(all_embeddings[0])} dimensions"
+            )
             return all_embeddings
 
         except Exception as e:
@@ -111,7 +117,6 @@ def generate_embeddings_for_documents(
         List of chunks with embeddings and metadata
     """
     import sys
-    from pathlib import Path
 
     # Add project root to path
     project_root = Path(__file__).parent.parent.parent
@@ -169,10 +174,8 @@ def generate_embeddings_for_documents(
             json.dump(chunks_for_save, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Saved chunk metadata to {output_path}")
-        logger.info("Note: Embeddings are generated in memory and ready for Pinecone storage")
+        logger.info(
+            "Note: Embeddings are generated in memory and ready for Pinecone storage"
+        )
 
     return chunks_with_embeddings
-
-
-
-

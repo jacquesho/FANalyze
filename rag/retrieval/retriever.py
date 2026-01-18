@@ -30,14 +30,20 @@ class DocumentRetriever:
         if not api_key:
             raise ValueError("PINECONE_API_KEY environment variable is required")
 
-        self.index_name = index_name or os.getenv("PINECONE_INDEX_NAME", "fanalyze-v2-rag")
+        self.index_name = index_name or os.getenv(
+            "PINECONE_INDEX_NAME", "fanalyze-v2-rag"
+        )
         if not self.index_name:
-            raise ValueError("Index name must be provided or PINECONE_INDEX_NAME must be set")
+            raise ValueError(
+                "Index name must be provided or PINECONE_INDEX_NAME must be set"
+            )
         self.namespace = namespace
         self.pc = Pinecone(api_key=api_key)
         self.index = self.pc.Index(self.index_name)
 
-        logger.info(f"Initialized DocumentRetriever with index: {self.index_name}, namespace: {self.namespace}")
+        logger.info(
+            f"Initialized DocumentRetriever with index: {self.index_name}, namespace: {self.namespace}"
+        )
 
     def _generate_query_embedding(self, query: str) -> list[float]:
         """Generate dense embedding for query."""
@@ -55,7 +61,7 @@ class DocumentRetriever:
     def _generate_sparse_vector(self, query: str) -> dict[str, Any]:
         """
         Generate sparse vector for keyword-based search using BM25-style approach.
-        
+
         For hybrid search, Pinecone supports sparse vectors in the query.
         This implementation uses a simple term-frequency approach.
         In production, you might want to use a proper BM25 implementation or
@@ -76,11 +82,17 @@ class DocumentRetriever:
         except Exception as e:
             # Fallback: For now, return None to use dense-only search
             # In a full implementation, you could use BM25 or other sparse vector methods
-            logger.info(f"Sparse vector generation not available, using dense-only search: {e}")
+            logger.info(
+                f"Sparse vector generation not available, using dense-only search: {e}"
+            )
             return None
 
     def _rerank_results(
-        self, query: str, results: list[dict[str, Any]], top_k: int = 5, model: str = "pinecone-rerank-v0"
+        self,
+        query: str,
+        results: list[dict[str, Any]],
+        top_k: int = 5,
+        model: str = "pinecone-rerank-v0",
     ) -> list[dict[str, Any]]:
         """
         Rerank search results using Pinecone's reranking model.
@@ -122,7 +134,9 @@ class DocumentRetriever:
                             "rerank_rank": rerank_item.rank + 1,  # 1-indexed
                         }
                     )
-                logger.info(f"Reranked {len(results)} results, returning top {len(reranked_results)}")
+                logger.info(
+                    f"Reranked {len(results)} results, returning top {len(reranked_results)}"
+                )
                 return reranked_results
             elif hasattr(rerank_response, "data") and rerank_response.data:
                 # Alternative response format
@@ -132,14 +146,20 @@ class DocumentRetriever:
                         reranked_results.append(
                             {
                                 **results[i],
-                                "rerank_score": getattr(rerank_item, "relevance_score", 0),
+                                "rerank_score": getattr(
+                                    rerank_item, "relevance_score", 0
+                                ),
                                 "rerank_rank": i + 1,
                             }
                         )
-                logger.info(f"Reranked {len(results)} results, returning top {len(reranked_results)}")
+                logger.info(
+                    f"Reranked {len(results)} results, returning top {len(reranked_results)}"
+                )
                 return reranked_results
             else:
-                logger.warning("Reranking response format not recognized, returning original results")
+                logger.warning(
+                    "Reranking response format not recognized, returning original results"
+                )
                 return results[:top_k]
 
         except Exception as e:
@@ -170,7 +190,9 @@ class DocumentRetriever:
         Returns:
             Dictionary with search results and metadata
         """
-        logger.info(f"Searching for: '{query}' (hybrid={use_hybrid}, reranking={use_reranking})")
+        logger.info(
+            f"Searching for: '{query}' (hybrid={use_hybrid}, reranking={use_reranking})"
+        )
 
         try:
             # Generate dense embedding
@@ -190,10 +212,14 @@ class DocumentRetriever:
                         namespace=self.namespace,
                         alpha=alpha,  # Weight: 0.7 = 70% dense, 30% sparse
                     )
-                    logger.info(f"Using hybrid search (dense + sparse) with alpha={alpha}")
+                    logger.info(
+                        f"Using hybrid search (dense + sparse) with alpha={alpha}"
+                    )
                 else:
                     # Fallback to dense-only if sparse generation not available
-                    logger.info("Sparse vectors not available, using dense-only search (still effective)")
+                    logger.info(
+                        "Sparse vectors not available, using dense-only search (still effective)"
+                    )
                     results = self.index.query(
                         vector=dense_vector,
                         top_k=top_k,
@@ -228,18 +254,26 @@ class DocumentRetriever:
                         "text": match.metadata.get("text", ""),
                         "source": match.metadata.get("source", "Unknown"),
                         "similarity_score": round(match.score, 4),
-                        "metadata": {k: v for k, v in match.metadata.items() if k != "text"},
+                        "metadata": {
+                            k: v for k, v in match.metadata.items() if k != "text"
+                        },
                     }
                 )
 
             # Apply reranking if requested
             if use_reranking and len(formatted_results) > 1:
                 logger.info(f"Reranking {len(formatted_results)} results...")
-                reranked_results = self._rerank_results(query, formatted_results, top_k=rerank_top_k)
+                reranked_results = self._rerank_results(
+                    query, formatted_results, top_k=rerank_top_k
+                )
                 final_results = reranked_results
                 reranked = True
             else:
-                final_results = formatted_results[:rerank_top_k] if use_reranking else formatted_results
+                final_results = (
+                    formatted_results[:rerank_top_k]
+                    if use_reranking
+                    else formatted_results
+                )
                 reranked = False
 
             logger.info(f"Found {len(final_results)} relevant document chunks")
@@ -294,4 +328,3 @@ def search_documents(
         use_reranking=use_reranking,
         rerank_top_k=rerank_top_k,
     )
-

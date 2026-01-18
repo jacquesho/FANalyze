@@ -28,6 +28,10 @@ dependencies = [
 ]
 
 [dependency-groups]
+dev = [
+    "ruff>=0.14.11",
+    "pre-commit>=3.8.0",
+]
 pr_ci = [
     "dbt-snowflake>=1.10.2",
     "sqlfluff>=3.4.2",
@@ -37,6 +41,7 @@ pr_ci = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.4",
+    "ruff>=0.1.0",
     "sqlfluff>=3.4.2",
     "sqlfluff-templater-dbt>=3.4.2",
 ]

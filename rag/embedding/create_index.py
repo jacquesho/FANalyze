@@ -40,7 +40,7 @@ def create_index(index_name: str = "fanalyze-v2-rag", dimension: int = 1024):
 
     print(f"\n🔧 Creating Pinecone index: {index_name}")
     print(f"   Dimension: {dimension}")
-    print(f"   Model: llama-text-embed-v2")
+    print("   Model: llama-text-embed-v2")
 
     # Check if index already exists
     existing_indexes = [idx.name for idx in pc.list_indexes()]
@@ -58,18 +58,15 @@ def create_index(index_name: str = "fanalyze-v2-rag", dimension: int = 1024):
             name=index_name,
             dimension=dimension,
             metric="cosine",
-            spec=ServerlessSpec(
-                cloud="aws",
-                region="us-east-1"
-            )
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
 
         print(f"\n✅ Successfully created index: {index_name}")
         print(f"   Dimension: {dimension}")
-        print(f"   Metric: cosine")
-        print(f"   Cloud: AWS")
-        print(f"   Region: us-east-1")
-        print(f"\n💡 Add this to your .env file:")
+        print("   Metric: cosine")
+        print("   Cloud: AWS")
+        print("   Region: us-east-1")
+        print("\n💡 Add this to your .env file:")
         print(f"   PINECONE_INDEX_NAME={index_name}")
 
         return True
@@ -82,7 +79,9 @@ def create_index(index_name: str = "fanalyze-v2-rag", dimension: int = 1024):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Create Pinecone index for FANalyze v2.0")
+    parser = argparse.ArgumentParser(
+        description="Create Pinecone index for FANalyze v2.0"
+    )
     parser.add_argument(
         "--index-name",
         "-i",
@@ -101,7 +100,3 @@ if __name__ == "__main__":
 
     success = create_index(args.index_name, args.dimension)
     sys.exit(0 if success else 1)
-
-
-
-

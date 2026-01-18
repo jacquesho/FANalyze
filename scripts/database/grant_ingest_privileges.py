@@ -37,13 +37,24 @@ def require_env(names: list[str]) -> dict[str, str]:
         else:
             values[name] = value
     if missing:
-        console.print("❌ Missing required environment variables: " + ", ".join(missing), style="red")
+        console.print(
+            "❌ Missing required environment variables: " + ", ".join(missing),
+            style="red",
+        )
         sys.exit(1)
     return values
 
 
 def admin_connect() -> psycopg.Connection:
-    env = require_env(["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"])
+    env = require_env(
+        [
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+        ]
+    )
     return psycopg.connect(
         host=env["POSTGRES_HOST"],
         port=env["POSTGRES_PORT"],
@@ -63,18 +74,42 @@ def grant_privileges(role_name: str) -> None:
             cur.execute("CREATE SCHEMA IF NOT EXISTS staging;")
 
             # CONNECT on database
-            cur.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {};").format(sql.Identifier(dbname), sql.Identifier(role_name)))
+            cur.execute(
+                sql.SQL("GRANT CONNECT ON DATABASE {} TO {};").format(
+                    sql.Identifier(dbname), sql.Identifier(role_name)
+                )
+            )
 
             # Schema usage
-            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA staging TO {};").format(sql.Identifier(role_name)))
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA staging TO {};").format(
+                    sql.Identifier(role_name)
+                )
+            )
 
             # Existing objects in schema
-            cur.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA staging TO {};").format(sql.Identifier(role_name)))
-            cur.execute(sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA staging TO {};").format(sql.Identifier(role_name)))
+            cur.execute(
+                sql.SQL(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA staging TO {};"
+                ).format(sql.Identifier(role_name))
+            )
+            cur.execute(
+                sql.SQL(
+                    "GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA staging TO {};"
+                ).format(sql.Identifier(role_name))
+            )
 
             # Default privileges for future objects
-            cur.execute(sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {};").format(sql.Identifier(role_name)))
-            cur.execute(sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {};").format(sql.Identifier(role_name)))
+            cur.execute(
+                sql.SQL(
+                    "ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {};"
+                ).format(sql.Identifier(role_name))
+            )
+            cur.execute(
+                sql.SQL(
+                    "ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {};"
+                ).format(sql.Identifier(role_name))
+            )
 
         conn.commit()
 
@@ -92,5 +127,3 @@ def main() -> int:
 if __name__ == "__main__":
     load_dotenv()
     sys.exit(main())
-
-

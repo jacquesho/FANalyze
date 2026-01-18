@@ -71,7 +71,9 @@ def get_extractor(file_path: str) -> TextExtractor:
         return extractors[file_ext]
     else:
         # Default to PDF extractor for unknown extensions
-        logger.warning(f"Unknown file extension {file_ext}, defaulting to PDF extractor")
+        logger.warning(
+            f"Unknown file extension {file_ext}, defaulting to PDF extractor"
+        )
         return PDFPlumberExtractor()
 
 
@@ -94,7 +96,3 @@ def extract_text(file_path: str, extractor_type: str = "auto") -> str:
         raise ValueError(f"Unknown extractor type: {extractor_type}")
 
     return extractor.extract(file_path)
-
-
-
-

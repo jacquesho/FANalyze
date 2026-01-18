@@ -38,8 +38,12 @@ def initialize_session_state():
                 st.success("✅ Agent initialized successfully!")
             except Exception as e:
                 st.error(f"❌ Failed to initialize agent: {e}")
-                st.info("💡 Make sure PostgreSQL is running and LangGraph database is set up.")
-                st.info("💡 Run: python langgraph/scripts/create_langgraph_service_user.py")
+                st.info(
+                    "💡 Make sure PostgreSQL is running and LangGraph database is set up."
+                )
+                st.info(
+                    "💡 Run: python langgraph/scripts/create_langgraph_service_user.py"
+                )
                 st.session_state.agent = None
 
     if "messages" not in st.session_state:
@@ -234,7 +238,9 @@ def main():
         # Persistent storage info
         st.header("💾 Persistent Storage")
         st.write("**Database:** PostgreSQL")
-        st.write("**Status:** ✅ Connected" if st.session_state.agent else "❌ Not Connected")
+        st.write(
+            "**Status:** ✅ Connected" if st.session_state.agent else "❌ Not Connected"
+        )
         st.write("**Features:**")
         st.write("• Conversation persistence")
         st.write("• Thread isolation")
@@ -250,7 +256,9 @@ def main():
             "Tell me about Metallica's history",
         ]
         for query in example_queries:
-            if st.button(f"💬 {query}", key=f"example_{query}", use_container_width=True):
+            if st.button(
+                f"💬 {query}", key=f"example_{query}", use_container_width=True
+            ):
                 # Simulate user input
                 if prompt := st.chat_input("Type your message here..."):
                     pass  # This will be handled by the chat input below
@@ -298,4 +306,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

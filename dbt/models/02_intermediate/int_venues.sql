@@ -1,7 +1,7 @@
-{{ config(materialized='table', schema='intermediate') }}
+{{ config(materialized='table', schema='INTERMEDIATE') }}
 
 with venue_performance as (
-    select 
+    select
         venue_id,
         venue_name,
         venue_type,
@@ -24,7 +24,7 @@ with venue_performance as (
 ),
 
 upcoming_venues as (
-    select 
+    select
         venue_id,
         venue_name,
         count(distinct show_id) as upcoming_shows
@@ -32,7 +32,7 @@ upcoming_venues as (
     group by venue_id, venue_name
 )
 
-select 
+select
     v.venue_id,
     v.venue_name,
     v.venue_type,
@@ -52,9 +52,7 @@ select
     v.first_show_date,
     v.last_show_date,
     coalesce(u.upcoming_shows, 0) as upcoming_shows,
-    case 
-        when u.upcoming_shows > 0 then true 
-        else false 
-    end as has_upcoming_shows
-from venue_performance v
-left join upcoming_venues u on v.venue_id = u.venue_id
+    coalesce(u.upcoming_shows, 0) > 0 as has_upcoming_shows
+from venue_performance as v
+left join upcoming_venues as u
+    on v.venue_id = u.venue_id

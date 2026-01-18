@@ -66,7 +66,9 @@ class DocumentProcessor:
 
         return text.strip()
 
-    def create_metadata(self, chunk: str, source_doc: str, chunk_index: int, total_chunks: int) -> dict[str, Any]:
+    def create_metadata(
+        self, chunk: str, source_doc: str, chunk_index: int, total_chunks: int
+    ) -> dict[str, Any]:
         """
         Create metadata for a document chunk.
 
@@ -97,7 +99,9 @@ class DocumentProcessor:
             "chunking_strategy": self.chunking_strategy,
         }
 
-    def process_document(self, file_path: str, extractor_type: str = "auto") -> list[dict[str, Any]]:
+    def process_document(
+        self, file_path: str, extractor_type: str = "auto"
+    ) -> list[dict[str, Any]]:
         """
         Process a document and return chunks with metadata.
 
@@ -145,10 +149,14 @@ class DocumentProcessor:
                 metadata = self.create_metadata(chunk, file_path, i, len(chunks))
                 processed_chunks.append({"text": chunk.strip(), "metadata": metadata})
 
-        logger.info(f"Successfully processed {file_path}: {len(processed_chunks)} chunks created")
+        logger.info(
+            f"Successfully processed {file_path}: {len(processed_chunks)} chunks created"
+        )
         return processed_chunks
 
-    def process_multiple_documents(self, file_paths: list[str], extractor_type: str = "auto") -> list[dict[str, Any]]:
+    def process_multiple_documents(
+        self, file_paths: list[str], extractor_type: str = "auto"
+    ) -> list[dict[str, Any]]:
         """
         Process multiple documents and return all chunks with metadata.
 
@@ -165,7 +173,9 @@ class DocumentProcessor:
             chunks = self.process_document(file_path, extractor_type)
             all_chunks.extend(chunks)
 
-        logger.info(f"Processed {len(file_paths)} documents: {len(all_chunks)} total chunks")
+        logger.info(
+            f"Processed {len(file_paths)} documents: {len(all_chunks)} total chunks"
+        )
         return all_chunks
 
     def get_processing_stats(self, chunks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -194,7 +204,3 @@ class DocumentProcessor:
             "max_token_count": max(token_counts),
             "sources": list({chunk["metadata"]["source"] for chunk in chunks}),
         }
-
-
-
-

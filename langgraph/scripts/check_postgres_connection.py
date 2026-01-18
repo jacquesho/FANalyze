@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 # Load .env file from project root (FANalyze_v2.0/.env)
 # Script is in langgraph/scripts/, so go up 2 levels to project root
 script_dir = Path(__file__).resolve().parent
-project_root = script_dir.parents[1]  # Go up 2 levels: scripts -> langgraph -> FANalyze_v2.0
+project_root = script_dir.parents[
+    1
+]  # Go up 2 levels: scripts -> langgraph -> FANalyze_v2.0
 env_path = project_root / ".env"
 
 # Debug: show what path we're looking for
@@ -19,7 +21,7 @@ print(f"🔍 Looking for .env at: {env_path}")
 print(f"   File exists: {env_path.exists()}")
 
 if not env_path.exists():
-    print(f"\n⚠️  .env file not found at expected location!")
+    print("\n⚠️  .env file not found at expected location!")
     print(f"   Checked: {env_path}")
     print(f"   Current working directory: {Path.cwd()}")
     print(f"   Script location: {Path(__file__).resolve()}")
@@ -59,6 +61,7 @@ else:
 print("\n📦 Checking psycopg library...")
 try:
     import psycopg
+
     print("   ✅ psycopg is installed")
 except ImportError:
     print("   ❌ psycopg is not installed")
@@ -70,24 +73,21 @@ if not missing:
     print("\n🔗 Testing connection...")
     try:
         db_uri = f"postgresql://{required_vars['LANGGRAPH_POSTGRES_USER']}:{required_vars['LANGGRAPH_POSTGRES_PASSWORD']}@{required_vars['LANGGRAPH_POSTGRES_HOST']}:{required_vars['LANGGRAPH_POSTGRES_PORT']}/{required_vars['LANGGRAPH_POSTGRES_DB']}"
-        
-        conn = psycopg.connect(
-            db_uri,
-            connect_timeout=3
-        )
-        
+
+        conn = psycopg.connect(db_uri, connect_timeout=3)
+
         # Test query
         with conn.cursor() as cur:
             cur.execute("SELECT version();")
             version = cur.fetchone()[0]
-            print(f"   ✅ Connected successfully!")
+            print("   ✅ Connected successfully!")
             print(f"   PostgreSQL version: {version.split(',')[0]}")
-            
+
             # Check if database exists
             cur.execute("SELECT current_database();")
             db_name = cur.fetchone()[0]
             print(f"   Current database: {db_name}")
-            
+
             # Check if tables exist (from PostgresSaver.setup())
             cur.execute("""
                 SELECT table_name 
@@ -101,21 +101,25 @@ if not missing:
                 for table in tables:
                     print(f"      - {table[0]}")
             else:
-                print("   ⚠️  No LangGraph tables found (run PostgresSaver.setup() on first use)")
-        
+                print(
+                    "   ⚠️  No LangGraph tables found (run PostgresSaver.setup() on first use)"
+                )
+
         conn.close()
         print("\n✅ Connection test passed! Streamlit should be able to connect.")
-        
+
     except psycopg.OperationalError as e:
         print(f"   ❌ Connection failed: {e}")
         print("\n💡 Troubleshooting:")
         print("   1. Make sure PostgreSQL container is running")
         print("   2. Check host/port are correct")
-        print("   3. Run setup script: python langgraph/scripts/create_langgraph_service_user.py")
+        print(
+            "   3. Run setup script: python langgraph/scripts/create_langgraph_service_user.py"
+        )
     except Exception as e:
         print(f"   ❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
 
 print("\n" + "=" * 60)
-

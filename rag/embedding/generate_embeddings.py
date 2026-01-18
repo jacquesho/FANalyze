@@ -30,8 +30,7 @@ from rag.embedding import Embedder
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ def main(
         print(f"\n✅ Total chunks created: {len(all_chunks)}")
 
         # Generate embeddings
-        print(f"\n🧠 Generating embeddings...")
+        print("\n🧠 Generating embeddings...")
         embedder = Embedder()
         embeddings = embedder.embed_chunks(all_chunks)
 
@@ -136,10 +135,12 @@ def main(
 
         # Store in Pinecone if requested
         if store_pinecone:
-            print(f"\n📦 Storing embeddings in Pinecone...")
+            print("\n📦 Storing embeddings in Pinecone...")
             index_name = index_name or os.getenv("PINECONE_INDEX_NAME")
             if not index_name:
-                print("❌ Error: PINECONE_INDEX_NAME environment variable required for Pinecone storage")
+                print(
+                    "❌ Error: PINECONE_INDEX_NAME environment variable required for Pinecone storage"
+                )
                 sys.exit(1)
 
             try:
@@ -148,17 +149,23 @@ def main(
 
                 # Prepare vectors for upsert
                 vectors = []
-                for i, (chunk, embedding) in enumerate(zip(all_chunks, embeddings, strict=False)):
+                for i, (chunk, embedding) in enumerate(
+                    zip(all_chunks, embeddings, strict=False)
+                ):
                     # Create unique ID from source and chunk index
                     source_name = Path(chunk["metadata"]["source"]).stem
-                    vector_id = f"{source_name}_chunk_{chunk['metadata']['chunk_index']}"
+                    vector_id = (
+                        f"{source_name}_chunk_{chunk['metadata']['chunk_index']}"
+                    )
 
                     vector = {
                         "id": vector_id,
                         "values": embedding,
                         "metadata": {
                             **chunk["metadata"],
-                            "text": chunk["text"][:1000],  # Limit text length for metadata
+                            "text": chunk["text"][
+                                :1000
+                            ],  # Limit text length for metadata
                         },
                     }
                     vectors.append(vector)
@@ -170,13 +177,17 @@ def main(
                     batch = vectors[i : i + batch_size]
                     batch_num = i // batch_size + 1
                     index.upsert(vectors=batch, namespace=namespace)
-                    print(f"  Stored batch {batch_num}/{total_batches} ({len(batch)} vectors)")
+                    print(
+                        f"  Stored batch {batch_num}/{total_batches} ({len(batch)} vectors)"
+                    )
 
-                print(f"✅ Successfully stored {len(vectors)} vectors in namespace '{namespace}'")
+                print(
+                    f"✅ Successfully stored {len(vectors)} vectors in namespace '{namespace}'"
+                )
 
                 # Get index stats
                 stats = index.describe_index_stats()
-                print(f"\n📊 Index Statistics:")
+                print("\n📊 Index Statistics:")
                 print(f"   Total vectors: {stats.total_vector_count}")
                 print(f"   Dimension: {stats.dimension}")
                 print(f"   Namespaces: {list(stats.namespaces.keys())}")
@@ -224,4 +235,3 @@ def main(
 
 if __name__ == "__main__":
     main()
-

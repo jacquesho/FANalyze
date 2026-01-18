@@ -22,9 +22,9 @@ def _get_snowflake_connection():
     sf_role = os.getenv("SNOWFLAKE_ROLE")
     sf_private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
 
-    assert (
-        sf_user and sf_account and sf_private_key_path
-    ), "Missing Snowflake env vars (require USER, ACCOUNT, and PRIVATE_KEY_PATH)."
+    assert sf_user and sf_account and sf_private_key_path, (
+        "Missing Snowflake env vars (require USER, ACCOUNT, and PRIVATE_KEY_PATH)."
+    )
 
     with open(sf_private_key_path, "rb") as f:
         private_key = serialization.load_pem_private_key(
@@ -121,9 +121,9 @@ def test_snowflake_upload_and_ingest() -> None:
         _insert_rows(conn, rows)
 
         ingested = _count_rows(conn)
-        assert ingested == len(rows), f"Row count mismatch: expected {len(rows)}, got {ingested}"
+        assert ingested == len(rows), (
+            f"Row count mismatch: expected {len(rows)}, got {ingested}"
+        )
     finally:
         if conn is not None:
             conn.close()
-
-

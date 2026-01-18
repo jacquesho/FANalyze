@@ -48,16 +48,18 @@ def test_db_connections():
             version = cursor.fetchone()[0]
 
             # Test database access
-            cursor.execute("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE()")
+            cursor.execute(
+                "SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE()"
+            )
             db_info = cursor.fetchone()
             database, schema, warehouse = db_info
 
-            logger.info(f"✅ Snowflake connection successful!")
+            logger.info("✅ Snowflake connection successful!")
             logger.info(f"   Version: {version}")
             logger.info(f"   Database: {database}")
             logger.info(f"   Schema: {schema}")
             logger.info(f"   Warehouse: {warehouse}")
-            
+
             cursor.close()
             conn.close()
 
@@ -85,23 +87,23 @@ def test_db_connections():
             # Test basic connection
             cursor.execute("SELECT version()")
             version = cursor.fetchone()[0]
-            
+
             # Test database name
             cursor.execute("SELECT current_database()")
             db_name = cursor.fetchone()[0]
-            
+
             # Test schema access
             cursor.execute("SELECT current_schema()")
             schema = cursor.fetchone()[0]
 
-            logger.info(f"✅ PostgreSQL connection successful!")
+            logger.info("✅ PostgreSQL connection successful!")
             logger.info(f"   Version: {version.split(',')[0]}")
             logger.info(f"   Database: {db_name}")
             logger.info(f"   Schema: {schema}")
-            
+
             cursor.close()
             conn.close()
-            
+
             return f"PostgreSQL connection verified - DB: {db_name}, Schema: {schema}"
         except Exception as e:
             error_msg = f"PostgreSQL connection failed: {e}"
@@ -117,4 +119,3 @@ def test_db_connections():
 
 # Create the DAG instance
 test_db_connections()
-

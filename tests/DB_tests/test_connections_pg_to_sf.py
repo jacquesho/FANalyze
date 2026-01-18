@@ -31,7 +31,9 @@ def get_postgres_connection():
         password = os.getenv("POSTGRES_PASSWORD_INGEST")
 
         if not all([host, port, dbname, user, password]):
-            console.print("❌ Missing required PostgreSQL environment variables", style="red")
+            console.print(
+                "❌ Missing required PostgreSQL environment variables", style="red"
+            )
             return None
 
         conn = psycopg.connect(
@@ -59,7 +61,9 @@ def get_snowflake_connection():
         sf_private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
 
         if not all([sf_user, sf_account, sf_private_key_path]):
-            console.print("❌ Missing required Snowflake environment variables", style="red")
+            console.print(
+                "❌ Missing required Snowflake environment variables", style="red"
+            )
             return None
 
         # Load private key
@@ -88,7 +92,7 @@ def create_snowflake_table(conn):
     """Create PG_to_SF table in Snowflake."""
     try:
         cursor = conn.cursor()
-        
+
         # Create the PG_to_SF table in testing schema with the same structure as staging.test_ingest
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS testing.PG_to_SF (
@@ -98,13 +102,13 @@ def create_snowflake_table(conn):
             loaded_at TIMESTAMP_TZ DEFAULT CURRENT_TIMESTAMP()
         )
         """
-        
+
         cursor.execute(create_table_sql)
         console.print("✅ Created PG_to_SF table in Snowflake", style="green")
-        
+
         cursor.close()
         return True
-        
+
     except snowflake.connector.Error as e:
         console.print(f"❌ Failed to create Snowflake table: {e}", style="red")
         return False
@@ -116,19 +120,22 @@ def extract_data_from_postgres():
         conn = get_postgres_connection()
         if not conn:
             return None
-        
+
         cursor = conn.cursor()
-        
+
         # Extract data from staging.test_ingest (excluding loaded_at since we'll use transfer timestamp)
         cursor.execute("SELECT id, data_content, file_name FROM staging.test_ingest")
         rows = cursor.fetchall()
-        
+
         cursor.close()
         conn.close()
-        
-        console.print(f"📊 Extracted {len(rows)} rows from PostgreSQL staging.test_ingest", style="green")
+
+        console.print(
+            f"📊 Extracted {len(rows)} rows from PostgreSQL staging.test_ingest",
+            style="green",
+        )
         return rows
-        
+
     except psycopg.Error as e:
         console.print(f"❌ Failed to extract data from PostgreSQL: {e}", style="red")
         return None
@@ -140,35 +147,38 @@ def load_data_to_snowflake(rows):
         conn = get_snowflake_connection()
         if not conn:
             return False
-        
+
         cursor = conn.cursor()
-        
+
         # Clear existing data (optional - remove if you want to append)
         cursor.execute("TRUNCATE TABLE IF EXISTS testing.PG_to_SF")
-        
+
         # Insert data with current timestamp (when transfer actually took place)
         insert_sql = """
         INSERT INTO testing.PG_to_SF (id, data_content, file_name, loaded_at)
         VALUES (%s, %s, %s, CURRENT_TIMESTAMP())
         """
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
             task = progress.add_task("Loading data to Snowflake...", total=len(rows))
-            
+
             for row in rows:
                 cursor.execute(insert_sql, (row[0], row[1], row[2]))
                 progress.advance(task)
-        
+
         cursor.close()
         conn.close()
-        
-        console.print(f"✅ Successfully loaded {len(rows)} records to Snowflake PG_to_SF", style="green")
+
+        console.print(
+            f"✅ Successfully loaded {len(rows)} records to Snowflake PG_to_SF",
+            style="green",
+        )
         return True
-        
+
     except snowflake.connector.Error as e:
         console.print(f"❌ Failed to load data to Snowflake: {e}", style="red")
         return False
@@ -180,41 +190,43 @@ def verify_snowflake_data():
         conn = get_snowflake_connection()
         if not conn:
             return False
-        
+
         cursor = conn.cursor()
-        
+
         # Count records
         cursor.execute("SELECT COUNT(*) FROM testing.PG_to_SF")
         count = cursor.fetchone()[0]
-        
+
         # Get sample data
         cursor.execute("SELECT * FROM testing.PG_to_SF ORDER BY id LIMIT 5")
         sample_data = cursor.fetchall()
-        
+
         cursor.close()
         conn.close()
-        
+
         # Display results
-        console.print(f"📊 Total records in Snowflake testing.PG_to_SF: {count}", style="green")
-        
+        console.print(
+            f"📊 Total records in Snowflake testing.PG_to_SF: {count}", style="green"
+        )
+
         if sample_data:
             table = Table(title="Sample Data from Snowflake testing.PG_to_SF")
             table.add_column("ID", style="cyan")
             table.add_column("Data Content", style="magenta")
             table.add_column("File Name", style="green")
             table.add_column("Loaded At", style="yellow")
-            
+
             for row in sample_data:
                 # Truncate timestamp for better table display
                 timestamp = str(row[3])
                 if len(timestamp) > 20:
                     timestamp = timestamp[:20] + "..."
                 table.add_row(str(row[0]), str(row[1]), str(row[2]), timestamp)
-            
+
             console.print(table)
-        
+
         return count > 0
-        
+
     except snowflake.connector.Error as e:
         console.print(f"❌ Snowflake data verification failed: {e}", style="red")
         return False
@@ -224,46 +236,55 @@ def test_pg_to_sf_transfer():
     """Test function to transfer data from PostgreSQL to Snowflake."""
     console.print("🚀 PostgreSQL to Snowflake Data Transfer Test", style="bold blue")
     console.print("=" * 50)
-    
+
     # Step 1: Create Snowflake table
     console.print("\n1️⃣ Creating PG_to_SF table in Snowflake", style="blue")
     sf_conn = get_snowflake_connection()
     if not sf_conn:
         console.print("❌ Cannot connect to Snowflake", style="red")
         return False
-    
+
     if not create_snowflake_table(sf_conn):
         console.print("❌ Failed to create Snowflake table", style="red")
         return False
-    
+
     sf_conn.close()
-    
+
     # Step 2: Extract data from PostgreSQL
-    console.print("\n2️⃣ Extracting data from PostgreSQL staging.test_ingest", style="blue")
+    console.print(
+        "\n2️⃣ Extracting data from PostgreSQL staging.test_ingest", style="blue"
+    )
     rows = extract_data_from_postgres()
     if not rows:
         console.print("❌ No data extracted from PostgreSQL", style="red")
         return False
-    
+
     # Step 3: Load data to Snowflake
     console.print("\n3️⃣ Loading data to Snowflake PG_to_SF", style="blue")
     if not load_data_to_snowflake(rows):
         console.print("❌ Failed to load data to Snowflake", style="red")
         return False
-    
+
     # Step 4: Verify data
     console.print("\n4️⃣ Verifying data in Snowflake", style="blue")
     if not verify_snowflake_data():
         console.print("❌ Data verification failed", style="red")
         return False
-    
-    console.print("\n✅ PostgreSQL to Snowflake transfer test completed successfully!", style="green")
+
+    console.print(
+        "\n✅ PostgreSQL to Snowflake transfer test completed successfully!",
+        style="green",
+    )
     console.print("\n📚 What was accomplished:")
-    console.print("   • Created testing.PG_to_SF table in Snowflake with matching schema")
+    console.print(
+        "   • Created testing.PG_to_SF table in Snowflake with matching schema"
+    )
     console.print("   • Extracted data from PostgreSQL staging.test_ingest")
-    console.print("   • Loaded data into Snowflake testing.PG_to_SF with transfer timestamp")
+    console.print(
+        "   • Loaded data into Snowflake testing.PG_to_SF with transfer timestamp"
+    )
     console.print("   • Verified data integrity and completeness")
-    
+
     return True
 
 

@@ -70,8 +70,8 @@ def create_table_if_not_exists(conn, table_name, df):
         cursor.close()
 
 
-def ingest_csv_to_snowflake(csv_file_path, table_name, schema="FAN_RAW"):
-    """Ingest CSV file directly into Snowflake table"""
+def ingest_csv_to_snowflake(csv_file_path, table_name, conn, schema="FAN_RAW"):
+    """Ingest CSV file directly into Snowflake table using an existing connection"""
 
     # Read CSV file
     logger.info(f"Reading CSV file: {csv_file_path}")
@@ -80,14 +80,6 @@ def ingest_csv_to_snowflake(csv_file_path, table_name, schema="FAN_RAW"):
         logger.info(f"CSV loaded with {len(df)} rows and {len(df.columns)} columns")
     except Exception as e:
         logger.error(f"Error reading CSV file {csv_file_path}: {e}")
-        return False
-
-    # Connect to Snowflake
-    try:
-        conn = get_snowflake_connection()
-        logger.info("Connected to Snowflake successfully")
-    except Exception as e:
-        logger.error(f"Error connecting to Snowflake: {e}")
         return False
 
     try:
@@ -199,8 +191,6 @@ def ingest_csv_to_snowflake(csv_file_path, table_name, schema="FAN_RAW"):
     except Exception as e:
         logger.error(f"Error during ingestion: {e}")
         return False
-    finally:
-        conn.close()
 
 
 def main():
@@ -213,34 +203,52 @@ def main():
         os.path.dirname(os.path.dirname(__file__)), "data", "raw", "csv"
     )  # Go to data/raw/csv
 
+    # Create a single Snowflake connection to reuse for all files
+    logger.info("Establishing Snowflake connection...")
+    try:
+        conn = get_snowflake_connection()
+        logger.info("Connected to Snowflake successfully")
+    except Exception as e:
+        logger.error(f"Error connecting to Snowflake: {e}")
+        logger.error("❌ Failed to establish Snowflake connection. Aborting ingestion.")
+        return False
+
     success_count = 0
     total_count = len(csv_files)
 
-    for csv_file, table_name in csv_files.items():
-        csv_path = os.path.join(base_path, csv_file)
+    try:
+        for csv_file, table_name in csv_files.items():
+            csv_path = os.path.join(base_path, csv_file)
 
-        if not os.path.exists(csv_path):
-            logger.warning(f"CSV file not found: {csv_path}")
-            continue
+            if not os.path.exists(csv_path):
+                logger.warning(f"CSV file not found: {csv_path}")
+                continue
 
-        logger.info(f"Processing {csv_file} -> {table_name}")
+            logger.info(f"Processing {csv_file} -> {table_name}")
 
-        if ingest_csv_to_snowflake(csv_path, table_name):
-            success_count += 1
-            logger.info(f"✅ Successfully processed {csv_file}")
+            if ingest_csv_to_snowflake(csv_path, table_name, conn):
+                success_count += 1
+                logger.info(f"✅ Successfully processed {csv_file}")
+            else:
+                logger.error(f"❌ Failed to process {csv_file}")
+
+        logger.info(
+            f"📊 Ingestion Summary: {success_count}/{total_count} files processed successfully"
+        )
+
+        if success_count == total_count:
+            logger.info("🎉 All CSV files ingested successfully!")
+            return True
         else:
-            logger.error(f"❌ Failed to process {csv_file}")
-
-    logger.info(
-        f"📊 Ingestion Summary: {success_count}/{total_count} files processed successfully"
-    )
-
-    if success_count == total_count:
-        logger.info("🎉 All CSV files ingested successfully!")
-        return True
-    else:
-        logger.error("⚠️  Some files failed to ingest")
-        return False
+            logger.error("⚠️  Some files failed to ingest")
+            return False
+    finally:
+        # Always close the connection when done
+        try:
+            conn.close()
+            logger.info("Snowflake connection closed")
+        except Exception as e:
+            logger.warning(f"Error closing connection: {e}")
 
 
 if __name__ == "__main__":

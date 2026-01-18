@@ -176,6 +176,8 @@ def get_snowflake_connection():
             role=os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN"),
             private_key=private_key_der,
             authenticator="snowflake",
+            login_timeout=60,  # 60 seconds timeout for login
+            network_timeout=60,  # 60 seconds timeout for network operations
         )
         return conn
     except Exception as e:

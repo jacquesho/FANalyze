@@ -178,44 +178,97 @@ def batch_pipeline_dag():
         except Exception as e:
             print(f"Warning: Could not check table counts: {e}")
 
-        # Run dbt
+        # Run dbt with real-time output streaming
         cmd = ["dbt", "run", "--profiles-dir", "/opt/airflow/.dbt"]
         print(f"Starting dbt run at {datetime.datetime.now()}")
         print(f"Running: {' '.join(cmd)}")
 
         try:
-            result = subprocess.run(
+            # Use Popen for real-time output streaming instead of buffering
+            process = subprocess.Popen(
                 cmd,
                 cwd="/opt/airflow/dbt",
                 env=env,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Combine stderr into stdout
                 text=True,
-                timeout=900,  # 15 minute timeout
-                check=False,  # Don't raise on non-zero exit
+                bufsize=1,  # Line buffered
             )
 
-            print(result.stdout)
-            if result.stderr:
-                print("STDERR:", result.stderr)
+            stdout_lines = []
+            # Read output line by line in real-time
+            for line in process.stdout:
+                line = line.rstrip()
+                print(line)
+                stdout_lines.append(line)
+                sys.stdout.flush()  # Force flush to see output immediately
+
+            # Wait for process to complete with timeout
+            try:
+                returncode = process.wait(timeout=900)  # 15 minute timeout
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                print("ERROR: dbt run timed out after 15 minutes")
+                raise subprocess.TimeoutExpired(cmd, 900)
+
+            result_stdout = "\n".join(stdout_lines)
+            # stderr is already combined into stdout via PIPE
 
             print(
-                f"dbt run finished at {datetime.datetime.now()} with exit code {result.returncode}"
+                f"dbt run finished at {datetime.datetime.now()} with exit code {returncode}"
             )
 
             # Handle protobuf reporting error (exit code 1 but success message)
-            if result.returncode == 1:
-                if "Done. PASS=" in result.stdout:
+            if returncode == 1:
+                # Check for successful completion despite protobuf error
+                if (
+                    "Done. PASS=" in result_stdout
+                    or "Completed successfully" in result_stdout
+                ):
                     print(
                         "dbt models completed successfully (protobuf reporting error ignored)"
                     )
                     return "dbt run completed successfully"
-                else:
-                    print("dbt run failed - last 50 lines of output:")
-                    lines = result.stdout.split("\n")
+                # Check for protobuf TypeError (version incompatibility issue)
+                elif (
+                    "MessageToJson()" in result_stdout
+                    and "unexpected keyword argument" in result_stdout
+                ):
+                    # Check if models were actually built successfully before the error
+                    stdout_before_error = result_stdout.split("MessageToJson()")[0]
+                    # Look for success indicators in the output before the error
+                    if any(
+                        indicator in stdout_before_error
+                        for indicator in [
+                            "Completed successfully",
+                            "Completed with",
+                            "PASS=",
+                            "Creating",
+                            "Running",
+                        ]
+                    ):
+                        # Check if there are any actual failures mentioned
+                        if (
+                            "FAIL" not in stdout_before_error.upper()
+                            and "ERROR" not in stdout_before_error.upper()
+                        ):
+                            print(
+                                "dbt models completed successfully (protobuf serialization error ignored)"
+                            )
+                            return "dbt run completed successfully"
+                    print("dbt run failed - protobuf version incompatibility detected")
+                    print("Last 50 lines of output:")
+                    lines = result_stdout.split("\n")
                     print("\n".join(lines[-50:]))
                     raise Exception(
-                        f"dbt run failed with exit code {result.returncode}"
+                        "dbt run failed with protobuf error. Check protobuf version compatibility."
                     )
+                else:
+                    print("dbt run failed - last 50 lines of output:")
+                    lines = result_stdout.split("\n")
+                    print("\n".join(lines[-50:]))
+                    raise Exception(f"dbt run failed with exit code {returncode}")
 
             return "dbt run completed successfully"
 
@@ -240,14 +293,18 @@ def batch_pipeline_dag():
         env = os.environ.copy()
         env.update(get_dbt_snowflake_env_vars())
 
-        models = "stg_shows_his stg_shows_future int_shows int_artists int_venues fact_shows dim_artists dim_venues marts_artist_performance marts_show_lifecycle"
+        # Run source tests for batch pipeline sources (shows_his and shows_future)
+        # Note: Batch models don't have tests configured yet, but source tests exist
+        # Source tests validate the raw data structure before transformation
         cmd = [
             "dbt",
             "test",
             "--profiles-dir",
             "/opt/airflow/.dbt",
             "--select",
-        ] + models.split()
+            "source:FAN_RAW.shows_his",
+            "source:FAN_RAW.shows_future",
+        ]
 
         print(
             f"Starting dbt tests for shows/artists/venues models at {datetime.datetime.now()}"
@@ -275,18 +332,64 @@ def batch_pipeline_dag():
 
             # Handle protobuf reporting error (exit code 1 but success message)
             if result.returncode == 1:
+                # FIRST: Check for "Nothing to do" - this can happen with or without protobuf errors
+                if "Nothing to do" in result.stdout:
+                    # Check if there's also a protobuf error (non-fatal)
+                    if (
+                        "MessageToJson()" in result.stdout
+                        and "unexpected keyword argument" in result.stdout
+                    ):
+                        print(
+                            "dbt test found no tests to run (protobuf serialization error ignored)"
+                        )
+                    else:
+                        print("dbt test found no tests to run")
+                    print(
+                        "Note: No tests are configured for the selected batch pipeline models."
+                    )
+                    return "dbt test completed (no tests configured)"
+
+                # Check for successful completion despite protobuf error
                 if "Done. PASS=" in result.stdout:
                     print(
                         "dbt tests completed successfully (protobuf reporting error ignored)"
                     )
                     return "dbt tests completed successfully"
-                else:
-                    print("dbt tests failed - last 50 lines of output:")
+
+                # Check for protobuf TypeError (version incompatibility issue)
+                if (
+                    "MessageToJson()" in result.stdout
+                    and "unexpected keyword argument" in result.stdout
+                ):
+                    # Check if this is just a reporting error (tests found but protobuf failed to serialize)
+                    if "Found" in result.stdout and "data tests" in result.stdout:
+                        # Tests were discovered, protobuf error is just in reporting
+                        # Check if there are any actual test failures mentioned before the error
+                        stdout_before_error = result.stdout.split("MessageToJson()")[0]
+                        if (
+                            "FAIL" not in stdout_before_error.upper()
+                            and "ERROR" not in stdout_before_error.upper()
+                        ):
+                            print(
+                                "dbt tests completed successfully (protobuf serialization error ignored)"
+                            )
+                            return "dbt tests completed successfully"
+                    # Otherwise, it's a real error
+                    print(
+                        "dbt tests failed - protobuf version incompatibility detected"
+                    )
+                    print("Last 50 lines of output:")
                     lines = result.stdout.split("\n")
                     print("\n".join(lines[-50:]))
                     raise Exception(
-                        f"dbt test failed with exit code {result.returncode}"
+                        "dbt test failed with protobuf error. Check protobuf version compatibility."
                     )
+
+                # If we get here, it's a different kind of failure
+                print("dbt tests failed - last 50 lines of output:")
+                lines = result.stdout.split("\n")
+                print("\n".join(lines[-50:]))
+                raise Exception(f"dbt test failed with exit code {result.returncode}")
 
             return "dbt tests completed successfully"
 

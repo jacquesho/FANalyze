@@ -9,11 +9,12 @@ psycopg2-binary>=2.9.11
 rich>=14.1.0
 snowflake-connector-python>=3.10.1
 pandas>=2.0.0
-dbt-core>=1.10.13
+dbt-core>=1.10.18  # Upgrade to latest 1.10.x for better protobuf 6.x compatibility
 dbt-snowflake>=1.10.2
 faker>=30.0.0
 cryptography>=45.0.7
 confluent-kafka>=2.3.0
+protobuf>=6.0.0,<6.34.0  # Pin to compatible version - dbt-core 1.11.2 requires protobuf>=6.0,<7.0 but 6.33.4 works
 
 # Additional utilities
 requests>=2.31.0

@@ -3,7 +3,7 @@ psycopg[binary]~=3.2
 rich>=14.1.0
 snowflake-connector-python>=3.10.1
 pandas>=2.0.0
-dbt-core>=1.10.13
+dbt-core>=1.10.18
 dbt-snowflake>=1.10.2
 faker>=30.0.0
 cryptography>=45.0.7
@@ -19,6 +19,7 @@ langchain-core>=1.2.5
 langchain-openai>=1.1.6
 langgraph>=1.0.5
 langgraph-checkpoint-postgres>=3.0.2
+protobuf<6.34.0,>=6.0.0
 
 [airflow]
 apache-airflow-providers-postgres>=5.10.0

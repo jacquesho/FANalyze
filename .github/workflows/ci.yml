@@ -109,6 +109,7 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
+          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           DBT_PROFILES_DIR: .dbt
@@ -123,6 +124,7 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
           SNOWFLAKE_PRIVATE_KEY_FILE_PWD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_FILE_PWD }}
+          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           DBT_PROFILES_DIR: .dbt

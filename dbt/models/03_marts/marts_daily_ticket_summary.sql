@@ -1,5 +1,5 @@
 -- Marts layer: Daily aggregated ticket sales summary
--- File: models/03_marts/mart_daily_ticket_summary.sql
+-- File: models/03_marts/marts_daily_ticket_summary.sql
 
 {{ config(
     materialized='table',

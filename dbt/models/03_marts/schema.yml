@@ -62,7 +62,7 @@ models:
                 min_value: 0
                 inclusive: true
   
-  - name: mart_ticket_performance
+  - name: marts_ticket_performance
     description: "Dimension table with aggregated performance metrics per show"
     columns:
       - name: show_id
@@ -111,7 +111,7 @@ models:
           - accepted_values:
               values: ['Sold Out', 'Near Capacity', 'Half Full', 'Quarter Full', 'Low Attendance']
   
-  - name: mart_daily_ticket_summary
+  - name: marts_daily_ticket_summary
     description: "Daily aggregated ticket sales summaries"
     columns:
       - name: sale_date

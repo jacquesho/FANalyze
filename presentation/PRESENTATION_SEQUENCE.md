@@ -144,7 +144,7 @@
 - "Our schema includes:"
   - **Fact Tables**: `fact_shows`, `fact_ticket_sales` (incremental)
   - **Dimension Tables**: `dim_artists`, `dim_venues`
-  - **Marts**: `mart_artist_performance`, `mart_ticket_performance`, `mart_show_lifecycle`, `mart_daily_ticket_summary`
+  - **Marts**: `marts_artist_performance`, `marts_ticket_performance`, `marts_show_lifecycle`, `marts_daily_ticket_summary`
 
 **Incremental Materialization (STAR FEATURE):**
 - "One of our key achievements is the incremental materialization for `fact_ticket_sales`."
@@ -267,7 +267,7 @@ While processing, prepare demonstration questions:
 - **Question**: "What are the top 5 artists by total revenue from historical shows?"
 - **Show Agent Response**: [Agent provides answer]
 - **Verify**: "Let me verify this against Snowflake." [Run SQL query]
-- **Result**: "The agent correctly queried our `mart_artist_performance` table and provided accurate results."
+- **Result**: "The agent correctly queried our `marts_artist_performance` table and provided accurate results."
 - ✅ **Demonstrates**: Understanding of batch-loaded data source
 
 **Demo 2: Real-time Data Query**

@@ -71,23 +71,23 @@ WITH ticket_sales_staging AS (
 SELECT
     -- Primary key
     ticket_sales_key,
-    
+
     -- Foreign keys to dimension tables (star schema)
     show_id,  -- FK to dim_shows_tickets.show_id
     artist_name,  -- FK to dim_artists_tickets.artist_name (natural key)
     venue_name,  -- FK to dim_venues_tickets.venue_name (natural key)
-    
+
     -- Degenerate dimensions (attributes kept in fact table for convenience and dimension building)
     show_date,  -- Also in dim_shows_tickets
     city_name,  -- Also in dim_venues_tickets and dim_shows_tickets
     state_code,  -- Also in dim_venues_tickets and dim_shows_tickets
     artist_tier,  -- Also in dim_artists_tickets and dim_shows_tickets
     venue_capacity,  -- Also in dim_venues_tickets and dim_shows_tickets
-    
+
     -- Event identifiers
     id,
     timestamp,
-    
+
     -- Measures (facts)
     tickets_sold,
     cumulative_tickets_sold,
@@ -98,12 +98,12 @@ SELECT
     average_ticket_price,
     venue_utilization_pct,
     sales_velocity_per_day,
-    
+
     -- Calculated measures
     demand_category,
     time_to_show_category,
     revenue_per_ticket,
-    
+
     -- Metadata
     created_at,
     synced_at,

@@ -62,28 +62,28 @@ cleaned_data as (
         ingested_at,
 
         -- Data Quality Flags
-        (show_date IS NULL) AS has_missing_date,
-        (artist_name IS NULL) AS has_missing_artist,
-        (venue_name IS NULL) AS has_missing_venue,
-        (show_id IS NULL) AS has_missing_show_id,
+        (show_date is null) as has_missing_date,
+        (artist_name is null) as has_missing_artist,
+        (venue_name is null) as has_missing_venue,
+        (show_id is null) as has_missing_show_id,
 
         -- Overall data quality status
-        CASE
-            WHEN show_date IS NULL AND artist_name IS NULL AND venue_name IS NULL THEN 'Incomplete'
-            WHEN show_date IS NULL OR artist_name IS NULL OR venue_name IS NULL THEN 'Partial'
-            ELSE 'Complete'
-        END AS data_quality_status,
+        case
+            when show_date is null and artist_name is null and venue_name is null then 'Incomplete'
+            when show_date is null or artist_name is null or venue_name is null then 'Partial'
+            else 'Complete'
+        end as data_quality_status,
 
         -- Completeness score (0-100%)
-        ROUND(
+        round(
             (
-                CASE WHEN show_date IS NOT NULL THEN 1 ELSE 0 END
-                + CASE WHEN artist_name IS NOT NULL THEN 1 ELSE 0 END
-                + CASE WHEN venue_name IS NOT NULL THEN 1 ELSE 0 END
-                + CASE WHEN show_id IS NOT NULL THEN 1 ELSE 0 END
+                case when show_date is not null then 1 else 0 end
+                + case when artist_name is not null then 1 else 0 end
+                + case when venue_name is not null then 1 else 0 end
+                + case when show_id is not null then 1 else 0 end
             ) * 25.0,
             2
-        ) AS completeness_score
+        ) as completeness_score
 
     from source_data
     -- Keep all records - filter by data quality flags downstream if needed

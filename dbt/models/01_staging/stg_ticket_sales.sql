@@ -6,8 +6,8 @@
     schema='STAGING'
 ) }}
 
-WITH cleaned_ticket_sales AS (
-    SELECT
+with cleaned_ticket_sales as (
+    select
         id,
         timestamp,
         show_id,
@@ -29,33 +29,33 @@ WITH cleaned_ticket_sales AS (
         synced_at,
 
         -- Data quality checks
-        CASE
-            WHEN tickets_sold < 0 THEN NULL
-            ELSE tickets_sold
-        END AS tickets_sold_clean,
-        CASE
-            WHEN revenue < 0 THEN NULL
-            ELSE revenue
-        END AS revenue_clean,
-        CASE
-            WHEN venue_capacity <= 0 THEN NULL
-            ELSE venue_capacity
-        END AS venue_capacity_clean,
+        case
+            when tickets_sold < 0 then null
+            else tickets_sold
+        end as tickets_sold_clean,
+        case
+            when revenue < 0 then null
+            else revenue
+        end as revenue_clean,
+        case
+            when venue_capacity <= 0 then null
+            else venue_capacity
+        end as venue_capacity_clean,
 
         -- Generate unique key using custom macro
-        {{ generate_ticket_sales_key('show_id', 'timestamp') }} AS ticket_sales_key
+        {{ generate_ticket_sales_key('show_id', 'timestamp') }} as ticket_sales_key
 
-    FROM {{ source('ticket_sales', 'raw_tickets') }}
-    WHERE
+    from {{ source('ticket_sales', 'raw_tickets') }}
+    where
         -- Filter out invalid records
-        show_id IS NOT NULL
-        AND artist_name IS NOT NULL
-        AND venue_name IS NOT NULL
-        AND show_date IS NOT NULL
-        AND timestamp IS NOT NULL
+        show_id is not null
+        and artist_name is not null
+        and venue_name is not null
+        and show_date is not null
+        and timestamp is not null
 )
 
-SELECT
+select
     id,
     timestamp,
     show_id,
@@ -64,11 +64,11 @@ SELECT
     show_date,
     city_name,
     state_code,
-    tickets_sold_clean AS tickets_sold,
+    tickets_sold_clean as tickets_sold,
     cumulative_tickets_sold,
-    revenue_clean AS revenue,
+    revenue_clean as revenue,
     cumulative_revenue,
-    venue_capacity_clean AS venue_capacity,
+    venue_capacity_clean as venue_capacity,
     sales_rate,
     days_until_show,
     artist_tier,
@@ -78,17 +78,17 @@ SELECT
     ticket_sales_key,
 
     -- Additional calculated fields
-    CASE
-        WHEN venue_capacity_clean > 0 THEN
-            ROUND(
-                (cumulative_tickets_sold::FLOAT / venue_capacity_clean::FLOAT) * 100,
+    case
+        when venue_capacity_clean > 0 then
+            round(
+                (cumulative_tickets_sold::float / venue_capacity_clean::float) * 100,
                 2
             )
-    END AS venue_utilization_pct,
+    end as venue_utilization_pct,
 
     -- Sales velocity calculation using custom macro
     {{
         calculate_sales_velocity('tickets_sold_clean', 'days_until_show')
-    }} AS sales_velocity_per_day
+    }} as sales_velocity_per_day
 
-FROM cleaned_ticket_sales
+from cleaned_ticket_sales

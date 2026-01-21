@@ -298,7 +298,7 @@ class TicketProducer(BaseProducer):
 
         return None
 
-    def run(self, interval_seconds: float = 10.0):
+    def run(self, interval_seconds: float = 1.0):
         """
         Run the producer, generating and sending ticket sales events.
 
@@ -366,7 +366,7 @@ class TicketProducer(BaseProducer):
 def main():
     """Main entry point"""
     producer = TicketProducer()
-    producer.run(interval_seconds=10.0)
+    producer.run(interval_seconds=2.0)
 
 
 if __name__ == "__main__":

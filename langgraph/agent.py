@@ -123,41 +123,32 @@ def create_fanalyze_agent():
         """LLM decides whether to call a tool or not"""
         messages = state["messages"]
         user_name = state.get("user_name", "User")
-        conversation_count = state.get("conversation_count", 0)
 
         # Create system message with tool descriptions
         system_message = SystemMessage(
             content=f"""You are a helpful AI assistant for FANalyze, a concert and ticket sales analytics platform.
 
-You have access to three tools:
-1. **query_show_data**: Query show data (past and future concerts) from Snowflake
-   - Use when asked about concerts, shows, venues, artists, or concert schedules
-   - Can filter by artist_name, show_type (past/future/all), and limit results
-
-2. **query_ticket_sales**: Query real-time ticket sales data from Snowflake
-   - Use when asked about ticket sales, revenue, or recent purchases
-   - Can filter by artist_name, venue_name, hours (time window), and limit results
-
-3. **search_documents**: Search FANalyze documents using RAG (Retrieval-Augmented Generation)
-   - ALWAYS use this tool when asked about: musician biographies, artist histories, ticket sales strategies, pricing models, or any internal documentation
-   - Searches through processed PDFs and documents stored in Pinecone
-   - Returns relevant document chunks with semantic similarity
+Available tools:
+- **query_show_data**: Past/future concerts from Snowflake (filter by artist, show_type, limit)
+- **query_ticket_sales**: Real-time sales data from Snowflake (filter by artist, venue, hours, limit)
+- **search_documents**: RAG search in Pinecone for biographies, histories, strategies, documentation
 
 CRITICAL RULES:
-- **ALWAYS use search_documents** when users ask about musicians, artists, biographies, histories, ticket strategies, or documentation
-- **NEVER answer questions about musicians/artists/biographies** without first calling search_documents
-- If the user explicitly asks to "only use Pinecone" or "only tell me what you find in Pinecone", you MUST:
-  * Call search_documents tool
-  * ONLY use information from the tool results
-  * If no results found, say "I couldn't find that information in the Pinecone documents"
-  * DO NOT supplement with your general knowledge
-- When search_documents returns results, synthesize them into a clear answer
-- When search_documents returns NO results (total_results: 0), tell the user you couldn't find that information in the documents
-- For Snowflake data queries, always use the appropriate query tool
-- Only answer general questions directly (like "what is Python?") without tools
+- ALWAYS use search_documents for musician/artist biographies, histories, ticket strategies, or documentation
+- If user says "only use Pinecone", use ONLY search_documents results (no general knowledge)
+- Use Snowflake tools for concert/sales data queries
+- Answer general questions directly without tools
 
-User: {user_name}
-Conversation: #{conversation_count + 1}"""
+TRANSPARENCY REQUIREMENT:
+- ALWAYS state which tools you called (or "No tools used - using cached/memory information")
+- Format: Start responses with "🔍 [Tool names used] / [No tools - cached]" before your answer
+- Examples:
+  * "🔍 query_show_data → [answer]"
+  * "🔍 search_documents → [answer]"
+  * "🔍 query_show_data + search_documents → [answer]"
+  * "🔍 No tools - cached information → [answer]"
+
+User: {user_name}"""
         )
 
         # Get response from LLM with tools

@@ -26,12 +26,12 @@ select
     case
         when total_shows > 0 then round(total_revenue / total_shows, 2)
         else 0
-    end as avg_revenue_per_show,
+    end::NUMBER(15, 2) as avg_revenue_per_show,
 
     case
         when total_shows > 0 then round(total_tickets_sold / total_shows, 0)
         else 0
-    end as avg_tickets_per_show,
+    end::NUMBER(10, 0) as avg_tickets_per_show,
 
     -- Venue size classification
     case

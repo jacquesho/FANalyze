@@ -151,10 +151,10 @@ This ensures we don't double-count ticket sales events that might arrive out of 
 - `dim_venues.sql` - Venue dimension with location and capacity details
 
 #### **Analytical Marts**:
-- `mart_ticket_performance.sql` - Aggregated performance metrics per show
-- `mart_daily_ticket_summary.sql` - Daily aggregated sales summaries
-- `mart_show_lifecycle.sql` - Show lifecycle tracking
-- `mart_artist_performance.sql` - Artist-level performance analytics
+- `marts_ticket_performance.sql` - Aggregated performance metrics per show
+- `marts_daily_ticket_summary.sql` - Daily aggregated sales summaries
+- `marts_show_lifecycle.sql` - Show lifecycle tracking
+- `marts_artist_performance.sql` - Artist-level performance analytics
 
 **What We Do Here**:
 1. **Incremental Loading**: Use dbt's incremental materialization to process only new data (critical for real-time pipelines)
@@ -181,7 +181,7 @@ This ensures we don't double-count ticket sales events that might arrive out of 
 
 **Why Incremental?**: Ticket sales data streams in continuously. Incremental loading means we only process new records, dramatically reducing compute costs and processing time. On first run, it processes all data; subsequent runs only process new events.
 
-**Example - Business Logic** (from `mart_ticket_performance.sql`):
+**Example - Business Logic** (from `marts_ticket_performance.sql`):
 ```sql
 -- Performance rating based on sales metrics
 CASE 
@@ -312,7 +312,7 @@ SELECT
     show_date,
     final_revenue,
     performance_rating
-FROM marts.mart_ticket_performance
+FROM marts.marts_ticket_performance
 WHERE show_date >= DATE_TRUNC('month', CURRENT_DATE())
 ORDER BY final_revenue DESC
 LIMIT 10;

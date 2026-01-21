@@ -62,7 +62,101 @@ models:
                 min_value: 0
                 inclusive: true
   
-  - name: mart_ticket_performance
+  - name: dim_artists_tickets
+    description: "Artist dimension table for ticket sales - built from ticket sales aggregations"
+    columns:
+      - name: artist_name
+        description: "Artist name (natural key, FK from fact_ticket_sales)"
+        tests:
+          - unique
+          - not_null
+      - name: artist_tier
+        description: "Artist tier classification"
+        tests:
+          - not_null
+      - name: total_shows_with_sales
+        description: "Number of shows with ticket sales for this artist"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_revenue
+        description: "Total revenue from ticket sales for this artist"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: dim_venues_tickets
+    description: "Venue dimension table for ticket sales - built from ticket sales aggregations"
+    columns:
+      - name: venue_name
+        description: "Venue name (natural key, FK from fact_ticket_sales)"
+        tests:
+          - not_null
+      - name: city_name
+        description: "City where venue is located"
+        tests:
+          - not_null
+      - name: venue_capacity
+        description: "Venue capacity"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              inclusive: true
+      - name: total_shows
+        description: "Number of shows at this venue"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: dim_shows_tickets
+    description: "Show dimension table for ticket sales - show-level attributes and final metrics"
+    columns:
+      - name: show_id
+        description: "Show identifier (natural key, FK from fact_ticket_sales)"
+        tests:
+          - unique
+          - not_null
+      - name: artist_name
+        description: "Artist name"
+        tests:
+          - not_null
+      - name: venue_name
+        description: "Venue name"
+        tests:
+          - not_null
+      - name: show_date
+        description: "Date of the show"
+        tests:
+          - not_null
+      - name: final_tickets_sold
+        description: "Final number of tickets sold for this show"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: final_sales_rate
+        description: "Final sales rate percentage"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+      - name: performance_rating
+        description: "Overall performance rating for the show"
+        tests:
+          - accepted_values:
+              values: ['Excellent', 'Good', 'Average', 'Below Average', 'Poor']
+
+  - name: marts_ticket_performance
     description: "Dimension table with aggregated performance metrics per show"
     columns:
       - name: show_id
@@ -111,7 +205,7 @@ models:
           - accepted_values:
               values: ['Sold Out', 'Near Capacity', 'Half Full', 'Quarter Full', 'Low Attendance']
   
-  - name: mart_daily_ticket_summary
+  - name: marts_daily_ticket_summary
     description: "Daily aggregated ticket sales summaries"
     columns:
       - name: sale_date

@@ -24,13 +24,34 @@ cleaned_data as (
         country_name,
 
         -- Metadata
-        source
+        source,
+
+        -- Data Quality Flags
+        (show_date is null) as has_missing_date,
+        (artist_name is null) as has_missing_artist,
+        (venue_name is null) as has_missing_venue,
+        (show_id is null) as has_missing_show_id,
+
+        -- Overall data quality status
+        case
+            when show_date is null and artist_name is null and venue_name is null then 'Incomplete'
+            when show_date is null or artist_name is null or venue_name is null then 'Partial'
+            else 'Complete'
+        end as data_quality_status,
+
+        -- Completeness score (0-100%)
+        round(
+            (
+                case when show_date is not null then 1 else 0 end
+                + case when artist_name is not null then 1 else 0 end
+                + case when venue_name is not null then 1 else 0 end
+                + case when show_id is not null then 1 else 0 end
+            ) * 25.0,
+            2
+        ) as completeness_score
 
     from source_data
-    where
-        show_date is not null
-        and artist_name is not null
-        and venue_name is not null
+    -- Keep all records - filter by data quality flags downstream if needed
 )
 
 select * from cleaned_data

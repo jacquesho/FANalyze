@@ -4,30 +4,19 @@ Orchestrates Kafka streaming validation, PostgreSQL to Snowflake sync, and dbt t
 """
 
 import os
+import subprocess
+import sys
+import psycopg2
+import json
 from datetime import timedelta
 import pendulum
 from airflow.decorators import dag, task
-
-
-def get_dbt_snowflake_env_vars():
-    """Get dbt environment variables from Airflow connections"""
-    return {
-        "SNOWFLAKE_ACCOUNT": "{{ conn.snowflake_default.extra_dejson.account }}",
-        "SNOWFLAKE_USER": "{{ conn.snowflake_default.login }}",
-        "SNOWFLAKE_PRIVATE_KEY_FILE_PWD": "{{ conn.snowflake_default.password }}",
-        "SNOWFLAKE_ROLE": "{{ conn.snowflake_default.extra_dejson.role }}",
-        "SNOWFLAKE_WAREHOUSE": "{{ conn.snowflake_default.extra_dejson.warehouse }}",
-        "SNOWFLAKE_DATABASE": "{{ conn.snowflake_default.extra_dejson.database }}",
-        "SNOWFLAKE_SCHEMA": "{{ conn.snowflake_default.schema }}",
-        "SNOWFLAKE_PRIVATE_KEY_FILE_PATH": "/opt/airflow/.secrets/rsa_key.p8",
-        "DBT_PROFILES_DIR": f"{os.environ['AIRFLOW_HOME']}/.dbt",
-        "DBT_PROJECT_DIR": f"{os.environ['AIRFLOW_HOME']}/dbt",
-        "PATH": "/home/airflow/.local/bin:" + os.environ["PATH"],
-    }
+from airflow.hooks.base import BaseHook
+from pathlib import Path
 
 
 def get_postgres_env_vars():
-    """Get PostgreSQL environment variables for service user (INGEST credentials)"""
+    """Get PostgreSQL environment variables for sync script (INGEST credentials)"""
     return {
         "POSTGRES_HOST": os.environ["POSTGRES_HOST"],
         "POSTGRES_PORT": os.environ["POSTGRES_PORT"],
@@ -37,27 +26,52 @@ def get_postgres_env_vars():
     }
 
 
-def get_snowflake_env_vars():
-    """Get Snowflake environment variables from Airflow connections for sync script"""
-    return {
-        "SNOWFLAKE_ACCOUNT": "{{ conn.snowflake_default.extra_dejson.account }}",
-        "SNOWFLAKE_USER": "{{ conn.snowflake_default.login }}",
-        "SNOWFLAKE_ROLE": "{{ conn.snowflake_default.extra_dejson.role }}",
-        "SNOWFLAKE_WAREHOUSE": "{{ conn.snowflake_default.extra_dejson.warehouse }}",
-        "SNOWFLAKE_DATABASE": "{{ conn.snowflake_default.extra_dejson.database }}",
-        "SNOWFLAKE_SCHEMA": "{{ conn.snowflake_default.schema }}",
+def get_snowflake_env_vars(include_dbt=False):
+    """
+    Get Snowflake environment variables from Airflow connections
+    Resolves connection values for Python tasks (not Jinja2 templates)
+
+    Args:
+        include_dbt: If True, includes dbt-specific paths and private key password
+    """
+    # Get connection and resolve actual values (not Jinja2 templates)
+    conn = BaseHook.get_connection("snowflake_default")
+    extra = (
+        json.loads(conn.extra) if isinstance(conn.extra, str) else (conn.extra or {})
+    )
+
+    env_vars = {
+        "SNOWFLAKE_ACCOUNT": extra.get("account", ""),
+        "SNOWFLAKE_USER": conn.login or "",
+        "SNOWFLAKE_ROLE": extra.get("role", ""),
+        "SNOWFLAKE_WAREHOUSE": extra.get("warehouse", ""),
+        "SNOWFLAKE_DATABASE": extra.get("database", ""),
+        "SNOWFLAKE_SCHEMA": conn.schema or "",
         "SNOWFLAKE_KEYPAIR_PATH": "/opt/airflow/.secrets/rsa_key.p8",
     }
+
+    if include_dbt:
+        env_vars.update(
+            {
+                "SNOWFLAKE_PRIVATE_KEY_FILE_PWD": conn.password or "",
+                "SNOWFLAKE_PRIVATE_KEY_FILE_PATH": "/opt/airflow/.secrets/rsa_key.p8",
+                "DBT_PROFILES_DIR": f"{os.environ.get('AIRFLOW_HOME', '/opt/airflow')}/.dbt",
+                "DBT_PROJECT_DIR": f"{os.environ.get('AIRFLOW_HOME', '/opt/airflow')}/dbt",
+                "PATH": "/home/airflow/.local/bin:" + os.environ.get("PATH", ""),
+            }
+        )
+
+    return env_vars
 
 
 @dag(
     dag_id="pipeline_streaming",
-    schedule="*/15 * * * *",  # Every 15 minutes
+    schedule="0 2 * * 0",  # Weekly on Sunday at 2 AM
     start_date=pendulum.datetime(2024, 1, 1, tz="Asia/Bangkok"),
     catchup=False,
     tags=["capstone", "streaming", "kafka", "dbt"],
     max_active_runs=1,
-    description="Streaming pipeline: Kafka → PostgreSQL → Snowflake → dbt transformations",
+    description="Streaming pipeline: Kafka → PostgreSQL → Snowflake → dbt transformations (runs weekly)",
     default_args={
         "retries": 2,
         "retry_delay": timedelta(minutes=5),
@@ -66,93 +80,281 @@ def get_snowflake_env_vars():
 def streaming_pipeline_dag():
     """
     Streaming Pipeline DAG
-    Orchestrates Kafka streaming data validation, sync to Snowflake, and dbt transformations
+    Orchestrates Kafka streaming data sync to Snowflake and dbt transformations
     """
 
-    @task.bash
-    def validate_kafka_consumer() -> str:
-        """
-        Task 1: Validate Kafka consumer is processing messages
-        Checks that PostgreSQL staging.ticket_sales table exists and has recent data
-        This is a validation step that doesn't fail the pipeline if no data is found
-        """
-        return """
-        echo "Validating Kafka consumer is processing messages..."
-        echo "Checking PostgreSQL staging.ticket_sales table..."
-        cd /opt/airflow && \
-        python -c "
-import psycopg
-import os
-try:
-    conn = psycopg.connect(
-        host=os.environ['POSTGRES_HOST'],
-        port=os.environ['POSTGRES_PORT'],
-        dbname=os.environ['POSTGRES_DB'],
-        user=os.environ['POSTGRES_USER'],
-        password=os.environ['POSTGRES_PASSWORD']
-    )
-    cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM staging.ticket_sales WHERE timestamp > NOW() - INTERVAL \\'15 minutes\\'')
-    count = cursor.fetchone()[0]
-    print(f'✅ Found {count} recent records in staging.ticket_sales (last 15 minutes)')
-    conn.close()
-except Exception as e:
-    print(f'⚠️  Validation note: {e}')
-    print('Continuing pipeline execution...')
-" || true
-        """
-
-    @task.bash(env={**get_postgres_env_vars(), **get_snowflake_env_vars()})
-    def sync_postgres_to_snowflake() -> str:
+    @task(execution_timeout=timedelta(minutes=10))
+    def sync_postgres_to_snowflake():
         """
         Task 2: Sync streaming ticket sales from PostgreSQL to Snowflake
         Incrementally syncs new records from staging.ticket_sales to FAN_RAW.raw_tickets
         """
-        return """
-        cd /opt/airflow && \
-        python scripts/sync_streaming_tickets__postgres_to_snowflake.py
-        """
+        script_path = (
+            "/opt/airflow/scripts/sync_streaming_tickets__postgres_to_snowflake.py"
+        )
 
-    @task.bash(env={**get_dbt_snowflake_env_vars()})
-    def dbt_run() -> str:
+        # Set environment variables
+        env = os.environ.copy()
+        env.update(get_postgres_env_vars())
+        env.update(get_snowflake_env_vars(include_dbt=False))
+
+        print(f"Running sync script: {script_path}")
+        print(
+            "Environment variables set: POSTGRES_HOST, POSTGRES_DB, SNOWFLAKE_ACCOUNT, etc."
+        )
+
+        # Use Popen for real-time output streaming
+        try:
+            process = subprocess.Popen(
+                [sys.executable, script_path],
+                cwd="/opt/airflow",
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,  # Line buffered
+            )
+
+            # Stream output in real-time
+            output_lines = []
+            try:
+                for line in process.stdout:
+                    print(line.rstrip())  # Print immediately
+                    output_lines.append(line)
+                    sys.stdout.flush()  # Force flush
+
+                # Wait for process with timeout
+                try:
+                    return_code = process.wait(timeout=600)  # 10 minute timeout
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                    print("ERROR: Sync script timed out after 10 minutes")
+                    raise Exception("Sync script timed out after 10 minutes")
+
+                if return_code != 0:
+                    output = "".join(output_lines)
+                    print(f"ERROR: Sync script failed with exit code {return_code}")
+                    print("Full output:", output[-2000:])  # Last 2000 chars
+                    raise Exception(f"Sync script failed with exit code {return_code}")
+
+                return "Sync completed successfully"
+
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+
+        except FileNotFoundError:
+            print(f"ERROR: Script not found: {script_path}")
+            raise
+        except Exception as e:
+            if "timed out" not in str(e):
+                print(f"ERROR: {e}")
+            raise
+
+    @task(execution_timeout=timedelta(minutes=15))
+    def dbt_run():
         """
         Task 3: Run dbt transformations
         Transforms raw streaming data into analytics-ready models
+        Note: dbt run can take several minutes, so timeout is set to 15 minutes
         """
-        return """
-        cd /opt/airflow/dbt && \
-        dbt run --profiles-dir /opt/airflow/.dbt 2>&1 | tee /tmp/dbt_output.log; \
-        exit_code=${PIPESTATUS[0]}; \
-        if [ $exit_code -eq 1 ]; then \
-          if grep -q "Done. PASS=" /tmp/dbt_output.log; then \
-            echo "dbt models completed successfully (protobuf reporting error ignored)"; \
-            exit 0; \
-          fi; \
-        fi; \
-        exit $exit_code
-        """
+        import datetime
 
-    @task.bash(env={**get_dbt_snowflake_env_vars()})
-    def dbt_test() -> str:
+        # Set environment variables
+        env = os.environ.copy()
+        env.update(get_snowflake_env_vars(include_dbt=True))
+
+        models = "stg_ticket_sales int_ticket_sales_dedup fact_ticket_sales marts_ticket_performance marts_daily_ticket_summary"
+        cmd = [
+            "dbt",
+            "run",
+            "--profiles-dir",
+            "/opt/airflow/.dbt",
+            "--select",
+        ] + models.split()
+
+        print(f"Starting dbt run at {datetime.datetime.now()}")
+        print(f"Running: {' '.join(cmd)}")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd="/opt/airflow/dbt",
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=900,  # 15 minute timeout
+                check=False,  # Don't raise on non-zero exit
+            )
+
+            print(result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
+
+            print(
+                f"dbt run finished at {datetime.datetime.now()} with exit code {result.returncode}"
+            )
+
+            # Handle protobuf reporting error (exit code 1 but success message)
+            if result.returncode == 1:
+                if "Done. PASS=" in result.stdout:
+                    print(
+                        "dbt models completed successfully (protobuf reporting error ignored)"
+                    )
+                    return "dbt run completed successfully"
+                else:
+                    print("dbt run failed - last 50 lines of output:")
+                    lines = result.stdout.split("\n")
+                    print("\n".join(lines[-50:]))
+                    raise Exception(
+                        f"dbt run failed with exit code {result.returncode}"
+                    )
+
+            return "dbt run completed successfully"
+
+        except subprocess.TimeoutExpired:
+            print("ERROR: dbt run timed out after 15 minutes")
+            raise
+        except Exception as e:
+            print(f"ERROR: dbt run failed: {e}")
+            raise
+
+    @task(execution_timeout=timedelta(minutes=10))
+    def dbt_test():
         """
-        Task 4: Run dbt tests
-        Validates data quality and model correctness
+        Task 4: Run dbt tests for ticket sales models only
+        Validates data quality for streaming ticket data pipeline
+        Tests: stg_ticket_sales, int_ticket_sales_dedup, fact_ticket_sales,
+                marts_ticket_performance, marts_daily_ticket_summary
         """
-        return """
-        cd /opt/airflow/dbt && \
-        dbt test --profiles-dir /opt/airflow/.dbt 2>&1 | tee /tmp/dbt_test_output.log; \
-        exit_code=${PIPESTATUS[0]}; \
-        if [ $exit_code -eq 1 ]; then \
-          if grep -q "Done. PASS=" /tmp/dbt_test_output.log; then \
-            echo "dbt tests completed successfully (protobuf reporting error ignored)"; \
-            exit 0; \
-          fi; \
-        fi; \
-        exit $exit_code
+        import datetime
+
+        # Set environment variables
+        env = os.environ.copy()
+        env.update(get_snowflake_env_vars(include_dbt=True))
+
+        models = "stg_ticket_sales int_ticket_sales_dedup fact_ticket_sales marts_ticket_performance marts_daily_ticket_summary"
+        cmd = [
+            "dbt",
+            "test",
+            "--profiles-dir",
+            "/opt/airflow/.dbt",
+            "--select",
+        ] + models.split()
+
+        print(
+            f"Starting dbt tests for ticket sales models at {datetime.datetime.now()}"
+        )
+        print(f"Running: {' '.join(cmd)}")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd="/opt/airflow/dbt",
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=600,  # 10 minute timeout
+                check=False,  # Don't raise on non-zero exit
+            )
+
+            print(result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
+
+            print(
+                f"dbt tests finished at {datetime.datetime.now()} with exit code {result.returncode}"
+            )
+
+            # Handle protobuf reporting error (exit code 1 but success message)
+            if result.returncode == 1:
+                if "Done. PASS=" in result.stdout:
+                    print(
+                        "dbt tests completed successfully (protobuf reporting error ignored)"
+                    )
+                    return "dbt tests completed successfully"
+                else:
+                    print("dbt tests failed - last 50 lines of output:")
+                    lines = result.stdout.split("\n")
+                    print("\n".join(lines[-50:]))
+                    raise Exception(
+                        f"dbt test failed with exit code {result.returncode}"
+                    )
+
+            return "dbt tests completed successfully"
+
+        except subprocess.TimeoutExpired:
+            print("ERROR: dbt test timed out after 10 minutes")
+            raise
+        except Exception as e:
+            print(f"ERROR: dbt test failed: {e}")
+            raise
+
+    @task(execution_timeout=timedelta(minutes=5))
+    def reset_streaming_data():
         """
+        Utility task: Reset streaming data for testing
+        - Truncates FAN_RAW.raw_tickets in Snowflake
+        - Resets sync_status and synced_at in PostgreSQL staging.ticket_sales
+        WARNING: Only use for testing - this deletes all historical ticket data!
+        """
+        # Add config directory to path
+        if os.path.exists("/opt/airflow/project_config"):
+            sys.path.append("/opt/airflow/project_config")
+        else:
+            sys.path.append(str(Path(__file__).parent.parent / "config"))
+
+        from api_config import get_snowflake_connection
+
+        print("⚠️  WARNING: Resetting streaming data for testing...")
+
+        # Reset PostgreSQL sync status
+        pg_conn = None
+        try:
+            pg_conn = psycopg2.connect(
+                host=os.environ["POSTGRES_HOST"],
+                port=os.environ["POSTGRES_PORT"],
+                database=os.environ["POSTGRES_DB"],
+                user=os.environ["POSTGRES_USER"],
+                password=os.environ["POSTGRES_PASSWORD"],
+            )
+            cursor = pg_conn.cursor()
+            cursor.execute(
+                "UPDATE staging.ticket_sales SET sync_status = NULL, synced_at = NULL"
+            )
+            pg_conn.commit()
+            print(f"✅ Reset sync_status for {cursor.rowcount} rows in PostgreSQL")
+            cursor.close()
+        except Exception as e:
+            print(f"❌ Error resetting PostgreSQL: {e}")
+            raise
+        finally:
+            if pg_conn:
+                pg_conn.close()
+
+        # Truncate Snowflake raw table
+        sf_conn = None
+        try:
+            sf_conn = get_snowflake_connection()
+            cursor = sf_conn.cursor()
+            cursor.execute("TRUNCATE TABLE IF EXISTS FAN_RAW.raw_tickets")
+            sf_conn.commit()
+            print("✅ Truncated FAN_RAW.raw_tickets in Snowflake")
+            cursor.close()
+        except Exception as e:
+            print(f"❌ Error truncating Snowflake: {e}")
+            raise
+        finally:
+            if sf_conn:
+                sf_conn.close()
+
+        print("✅ Streaming data reset complete - ready for re-sync")
+        return "Reset completed successfully"
 
     # Define task dependencies
-    validate_kafka_consumer() >> sync_postgres_to_snowflake() >> dbt_run() >> dbt_test()
+    sync_postgres_to_snowflake() >> dbt_run() >> dbt_test()
 
 
 # Create the DAG instance

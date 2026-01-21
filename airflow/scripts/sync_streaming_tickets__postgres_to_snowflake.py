@@ -20,11 +20,20 @@ else:
     sys.path.append(str(Path(__file__).parent.parent / "config"))
 from api_config import get_snowflake_connection
 
-# Set up logging
+# Set up logging with unbuffered output for Airflow
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    force=True,  # Override any existing config
 )
 logger = logging.getLogger(__name__)
+# Ensure logging flushes immediately
+for handler in logger.handlers:
+    handler.flush()
+import sys
+
+sys.stdout.flush()
+sys.stderr.flush()
 
 
 def get_postgres_connection():
@@ -36,6 +45,7 @@ def get_postgres_connection():
             database=os.getenv("POSTGRES_DB", "postgres"),
             user=os.getenv("POSTGRES_USER_INGEST", "user_fanalyze_ingest"),
             password=os.getenv("POSTGRES_PASSWORD_INGEST", "fanalyze_ingest_password"),
+            connect_timeout=10,  # 10 second connection timeout
         )
         return conn
     except Exception as e:
@@ -270,8 +280,10 @@ def update_sync_status(conn, records, status):
 
 def main():
     """Main function to sync streaming ticket sales from PostgreSQL to Snowflake"""
+    import sys
 
     logger.info("🔄 Starting streaming ticket sync from PostgreSQL to Snowflake...")
+    sys.stdout.flush()  # Ensure output appears immediately
 
     postgres_conn = None
     snowflake_conn = None
@@ -279,6 +291,7 @@ def main():
     try:
         # Connect to PostgreSQL
         logger.info("🔌 Connecting to PostgreSQL...")
+        sys.stdout.flush()
         postgres_conn = get_postgres_connection()
 
         # Add sync columns if needed
@@ -293,6 +306,7 @@ def main():
 
         # Connect to Snowflake
         logger.info("🔌 Connecting to Snowflake...")
+        sys.stdout.flush()
         snowflake_conn = get_snowflake_connection()
 
         # Create Snowflake table if needed
@@ -300,6 +314,7 @@ def main():
 
         # Sync records to Snowflake
         logger.info("📤 Syncing records to Snowflake FAN_RAW.raw_tickets...")
+        sys.stdout.flush()
         sync_success = sync_records_to_snowflake(snowflake_conn, pending_records)
 
         if sync_success:

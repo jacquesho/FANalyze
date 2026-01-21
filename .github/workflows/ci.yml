@@ -6,7 +6,36 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  changes:
+    name: Detect file changes
+    runs-on: ubuntu-latest
+    outputs:
+      dbt: ${{ steps.filter.outputs.dbt }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for dbt-related changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            dbt:
+              - 'dbt/**'
+              - '**/*.sql'
+              - 'dbt_project.yml'
+              - 'profiles.yml'
+              - '.dbt/**'
+              - 'scripts/ci_*.py'
+              - 'scripts/ci_load_csvs.py'
+
   lint:
     name: Code Linting
     runs-on: ubuntu-latest
@@ -32,6 +61,8 @@ jobs:
 
   dbt_ci:
     name: dbt CI - SQL Linting and Testing
+    needs: changes
+    if: needs.changes.outputs.dbt == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -47,6 +78,16 @@ jobs:
         with:
           version: "latest"
 
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            .uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
       - name: Install dependencies
         run: uv sync --group pr_ci --no-dev
 
@@ -59,6 +100,33 @@ jobs:
           echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY_CONTENT }}" > .secrets/rsa_key.p8
           chmod 600 .secrets/rsa_key.p8
         shell: bash
+
+      - name: Run dbt debug
+        run: uv run dbt debug -t ci --project-dir dbt
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
+          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          DBT_PROFILES_DIR: .dbt
+          DBT_PROJECT_DIR: dbt
+          DBT_TARGET: ci
+
+      - name: Run SQLFluff lint
+        run: uv run sqlfluff lint dbt/
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_FILE: .secrets/rsa_key.p8
+          SNOWFLAKE_PRIVATE_KEY_FILE_PATH: .secrets/rsa_key.p8
+          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          DBT_PROFILES_DIR: .dbt
+          DBT_PROJECT_DIR: dbt
 
       - name: Create CI database
         run: uv run python scripts/ci_database_manager.py create

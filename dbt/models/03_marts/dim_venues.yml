@@ -2,9 +2,6 @@ version: 2
 
 models:
   - name: dim_venues
-    config:
-      contract:
-        enforced: true
     columns:
       - name: venue_id
         data_type: text

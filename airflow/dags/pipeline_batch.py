@@ -74,7 +74,7 @@ def batch_pipeline_dag():
     Orchestrates CSV batch data ingestion and dbt transformations
     """
 
-    @task(execution_timeout=timedelta(minutes=5))
+    @task(execution_timeout=timedelta(minutes=5), do_xcom_push=False)
     def clear_snowflake_schemas():
         """
         Task 1: Clear Snowflake schemas for clean state

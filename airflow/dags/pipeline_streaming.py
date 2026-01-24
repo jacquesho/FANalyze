@@ -83,7 +83,7 @@ def streaming_pipeline_dag():
     Orchestrates Kafka streaming data sync to Snowflake and dbt transformations
     """
 
-    @task(execution_timeout=timedelta(minutes=10))
+    @task(execution_timeout=timedelta(minutes=15), do_xcom_push=False)
     def sync_postgres_to_snowflake():
         """
         Task 2: Sync streaming ticket sales from PostgreSQL to Snowflake
@@ -117,20 +117,43 @@ def streaming_pipeline_dag():
 
             # Stream output in real-time
             output_lines = []
-            try:
-                for line in process.stdout:
-                    print(line.rstrip())  # Print immediately
-                    output_lines.append(line)
-                    sys.stdout.flush()  # Force flush
+            return_code = None
 
-                # Wait for process with timeout
+            try:
+                # Read output line by line - handle pipe closure gracefully
                 try:
-                    return_code = process.wait(timeout=600)  # 10 minute timeout
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
-                    print("ERROR: Sync script timed out after 10 minutes")
-                    raise Exception("Sync script timed out after 10 minutes")
+                    for line in process.stdout:
+                        print(line.rstrip())  # Print immediately
+                        output_lines.append(line)
+                        sys.stdout.flush()  # Force flush
+                except (BrokenPipeError, ValueError) as e:
+                    # Pipe closed - process might have finished, check return code
+                    print(f"Note: Output pipe closed: {e}")
+                    return_code = process.poll()
+                    if return_code is None:
+                        # Process still running, wait for it
+                        return_code = process.wait(timeout=600)
+                    elif return_code == 0:
+                        # Process completed successfully despite pipe closure
+                        print("Process completed successfully")
+                    else:
+                        # Process failed
+                        output = "".join(output_lines)
+                        print(f"ERROR: Sync script failed with exit code {return_code}")
+                        print("Full output:", output[-2000:])
+                        raise Exception(
+                            f"Sync script failed with exit code {return_code}"
+                        )
+
+                # Wait for process to complete if we haven't gotten return code yet
+                if return_code is None:
+                    try:
+                        return_code = process.wait(timeout=900)  # 15 minute timeout
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+                        print("ERROR: Sync script timed out after 15 minutes")
+                        raise Exception("Sync script timed out after 15 minutes")
 
                 if return_code != 0:
                     output = "".join(output_lines)
@@ -138,7 +161,8 @@ def streaming_pipeline_dag():
                     print("Full output:", output[-2000:])  # Last 2000 chars
                     raise Exception(f"Sync script failed with exit code {return_code}")
 
-                return "Sync completed successfully"
+                print("✅ Sync completed successfully")
+                # Note: do_xcom_push=False prevents XCom storage errors
 
             finally:
                 if process.poll() is None:
@@ -153,7 +177,7 @@ def streaming_pipeline_dag():
                 print(f"ERROR: {e}")
             raise
 
-    @task(execution_timeout=timedelta(minutes=15))
+    @task(execution_timeout=timedelta(minutes=15), do_xcom_push=False)
     def dbt_run():
         """
         Task 3: Run dbt transformations
@@ -221,7 +245,7 @@ def streaming_pipeline_dag():
             print(f"ERROR: dbt run failed: {e}")
             raise
 
-    @task(execution_timeout=timedelta(minutes=10))
+    @task(execution_timeout=timedelta(minutes=10), do_xcom_push=False)
     def dbt_test():
         """
         Task 4: Run dbt tests for ticket sales models only
@@ -292,7 +316,7 @@ def streaming_pipeline_dag():
             print(f"ERROR: dbt test failed: {e}")
             raise
 
-    @task(execution_timeout=timedelta(minutes=5))
+    @task(execution_timeout=timedelta(minutes=5), do_xcom_push=False)
     def reset_streaming_data():
         """
         Utility task: Reset streaming data for testing

@@ -109,7 +109,7 @@ def batch_pipeline_dag():
             print("STDERR:", e.stderr)
             raise
 
-    @task(execution_timeout=timedelta(minutes=10))
+    @task(execution_timeout=timedelta(minutes=10), do_xcom_push=False)
     def ingest_csv_to_snowflake():
         """
         Task 2: Ingest CSV files to Snowflake FAN_RAW schema
@@ -144,7 +144,7 @@ def batch_pipeline_dag():
             print("STDERR:", e.stderr)
             raise
 
-    @task(execution_timeout=timedelta(minutes=15))
+    @task(execution_timeout=timedelta(minutes=15), do_xcom_push=False)
     def dbt_run():
         """
         Task 3: Run dbt transformations
@@ -196,31 +196,51 @@ def batch_pipeline_dag():
             )
 
             stdout_lines = []
-            # Read output line by line in real-time
-            for line in process.stdout:
-                line = line.rstrip()
-                print(line)
-                stdout_lines.append(line)
-                sys.stdout.flush()  # Force flush to see output immediately
+            return_code = None
 
-            # Wait for process to complete with timeout
+            # Read output line by line in real-time - handle pipe closure gracefully
             try:
-                returncode = process.wait(timeout=900)  # 15 minute timeout
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-                print("ERROR: dbt run timed out after 15 minutes")
-                raise subprocess.TimeoutExpired(cmd, 900)
+                for line in process.stdout:
+                    line = line.rstrip()
+                    print(line)
+                    stdout_lines.append(line)
+                    sys.stdout.flush()  # Force flush to see output immediately
+            except (BrokenPipeError, ValueError) as e:
+                # Pipe closed - process might have finished, check return code
+                print(f"Note: Output pipe closed: {e}")
+                return_code = process.poll()
+                if return_code is None:
+                    # Process still running, wait for it
+                    return_code = process.wait(timeout=900)
+                elif return_code == 0:
+                    # Process completed successfully despite pipe closure
+                    print("Process completed successfully")
+                else:
+                    # Process failed
+                    result_stdout = "\n".join(stdout_lines)
+                    print(f"ERROR: dbt run failed with exit code {return_code}")
+                    print("Full output:", result_stdout[-2000:])
+                    raise Exception(f"dbt run failed with exit code {return_code}")
+
+            # Wait for process to complete if we haven't gotten return code yet
+            if return_code is None:
+                try:
+                    return_code = process.wait(timeout=900)  # 15 minute timeout
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                    print("ERROR: dbt run timed out after 15 minutes")
+                    raise subprocess.TimeoutExpired(cmd, 900)
 
             result_stdout = "\n".join(stdout_lines)
             # stderr is already combined into stdout via PIPE
 
             print(
-                f"dbt run finished at {datetime.datetime.now()} with exit code {returncode}"
+                f"dbt run finished at {datetime.datetime.now()} with exit code {return_code}"
             )
 
             # Handle protobuf reporting error (exit code 1 but success message)
-            if returncode == 1:
+            if return_code == 1:
                 # Check for successful completion despite protobuf error
                 if (
                     "Done. PASS=" in result_stdout
@@ -268,18 +288,44 @@ def batch_pipeline_dag():
                     print("dbt run failed - last 50 lines of output:")
                     lines = result_stdout.split("\n")
                     print("\n".join(lines[-50:]))
-                    raise Exception(f"dbt run failed with exit code {returncode}")
+                    raise Exception(f"dbt run failed with exit code {return_code}")
 
-            return "dbt run completed successfully"
+            print("✅ dbt run completed successfully")
+            # Note: do_xcom_push=False prevents XCom storage errors
 
         except subprocess.TimeoutExpired:
             print("ERROR: dbt run timed out after 15 minutes")
             raise
+        except BrokenPipeError as e:
+            # Pipe closed unexpectedly - check if process actually succeeded
+            print(f"WARNING: Output pipe closed unexpectedly: {e}")
+            try:
+                return_code = process.poll()
+                if return_code == 0:
+                    print("Process completed successfully despite pipe error")
+                else:
+                    print(f"Process failed with exit code {return_code}")
+                    raise Exception(
+                        f"dbt run failed with exit code {return_code} (pipe error)"
+                    )
+            except Exception:
+                raise Exception(f"dbt run failed due to pipe error: {e}")
         except Exception as e:
+            # Check if process completed successfully despite exception
+            try:
+                return_code = process.poll()
+                if return_code == 0:
+                    print(
+                        f"Process completed successfully despite exception during output reading: {e}"
+                    )
+                else:
+                    raise
+            except Exception:
+                pass
             print(f"ERROR: dbt run failed: {e}")
             raise
 
-    @task(execution_timeout=timedelta(minutes=10))
+    @task(execution_timeout=timedelta(minutes=10), do_xcom_push=False)
     def dbt_test():
         """
         Task 4: Run dbt tests for shows/artists/venues models only

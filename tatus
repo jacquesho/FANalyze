@@ -1,5 +1,0 @@
-[33m534c50c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32msetup/csv-pipelines[m[33m, [m[1;31morigin/setup/csv-pipelines[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Snowflake test connection complete, project tree cleanup
-[33m4a94337[m Added more README metrics, and created test scripts for Postgres
-[33m8407624[m Merge pull request #1 from jacquesho/feature/readme-metrics
-[33mdc07b98[m docs(README) - completed project proposal per Capstone guidelines
-[33meb04233[m Project setup and Docker initial config completed

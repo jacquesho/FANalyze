@@ -70,6 +70,10 @@ dbt/target/
 ~/.dbt/
 profiles.yml
 
+# local dbt/pytest artifacts (do not commit)
+.dbt/
+.pytest_cache/
+
 # --- Airflow ---
 airflow/logs/
 airflow/*.log

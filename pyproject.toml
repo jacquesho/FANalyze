@@ -32,6 +32,7 @@ dependencies = [
 dev = [
     "ruff>=0.14.11",
     "pre-commit>=3.8.0",
+    "pytest>=8.4",
 ]
 pr_ci = [
     "dbt-snowflake>=1.10.2",

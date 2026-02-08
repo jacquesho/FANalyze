@@ -101,7 +101,13 @@ def get_snowflake_connection():
     """Get Snowflake connection using keypair authentication"""
     try:
         # Get keypair file path - handle both absolute and relative paths
-        keypair_path = os.getenv("SNOWFLAKE_KEYPAIR_PATH", ".secrets/rsa_key.p8")
+        # Support multiple env var names for compatibility across scripts/CI.
+        keypair_path = (
+            os.getenv("SNOWFLAKE_KEYPAIR_PATH")
+            or os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
+            or os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE_PATH")
+            or ".secrets/rsa_key.p8"
+        )
 
         # If path is absolute, use it directly; otherwise construct relative to project root
         if os.path.isabs(keypair_path):

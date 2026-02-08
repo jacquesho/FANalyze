@@ -156,7 +156,7 @@ FANalyze_v2.0/
 pip install uv
 
 # Install project dependencies
-uv sync
+uv sync --dev
 ```
 
 ### 2. ⚙️ Configure Environment
@@ -170,39 +170,31 @@ cp .env.example .env
 # - API keys (for data collection)
 ```
 
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
 ### 3. 🗄️ Initialize Databases
 ```bash
+# Create the shared network (one-time)
+docker network create fa-dae2-capstone_kafka_network
+
 # Start PostgreSQL via Docker
-docker-compose up -d postgres
-
-# Initialize database schema
-psql -h localhost -U postgres -f sql/init.sql
+docker compose -f docker-compose.yaml up -d kafka-postgres
 ```
 
-### 4. 🔄 Run Pipelines
+### 4. 🔄 Run the demo
 
-#### Real-time Pipeline (Synthetic ticket sales → PostgreSQL)
-```bash
-uv run python main.py --pipeline realtime
-```
+See the end-to-end runbook:
 
-#### Batch Pipeline (Setlist data → Snowflake)
-```bash
-uv run python main.py --pipeline batch
-```
-
-#### Run Both Pipelines
-```bash
-uv run python main.py --pipeline all
-```
+- [`docs/demo_runbook.md`](docs/demo_runbook.md)
 
 ### 5. ✅ Verify Data
 ```bash
-# Test database connections
-uv run pytest tests/test_connections.py -v
-
-# Test data pipeline
-uv run pytest tests/test_data_pipeline.py -v
+# Run the DB test suite
+uv run pytest tests/DB_tests -v
 ```
 
 ## 🧪 Testing
@@ -216,38 +208,9 @@ uv run pytest tests/ -v
 uv run pytest tests/ --cov=scripts --cov-report=html
 ```
 
-### Individual Test Categories
+### Data quality checks (example)
 ```bash
-# Test database connections
-uv run pytest tests/test_connections.py -v
-
-# Test data pipeline
-uv run pytest tests/test_data_pipeline.py -v
-
-# Test data quality
-uv run pytest tests/test_data_quality.py -v
-```
-
-## 📊 Monitoring & Observability
-
-### Performance Monitoring
-```bash
-# Monitor pipeline performance
-uv run python scripts/monitoring/performance_monitor.py --pipeline realtime
-uv run python scripts/monitoring/performance_monitor.py --pipeline batch
-
-# Generate performance report
-uv run python scripts/monitoring/generate_report.py --output reports/performance_report.html
-```
-
-### Data Quality Checks
-```bash
-# Validate JSON structure
-uv run python scripts/validation/validate_json.py --input data/external/ticket_sales_events.json
-
-# Check data completeness
-uv run python scripts/validation/data_completeness.py --source postgres --table staging.raw_data
-uv run python scripts/validation/data_completeness.py --source snowflake --table STAGING.SETLISTS_RAW
+uv run python scripts/validation/data_validation.py
 ```
 
 ## 🛠️ Development
@@ -255,13 +218,10 @@ uv run python scripts/validation/data_completeness.py --source snowflake --table
 ### Code Quality
 ```bash
 # Run linting
-uv run ruff check scripts/
+uv run ruff check .
 
 # Format code
-uv run ruff format scripts/
-
-# Type checking
-uv run mypy scripts/
+uv run ruff format .
 ```
 
 ### Database Management
@@ -306,10 +266,11 @@ file data/external/*.json
 
 ## 📚 Documentation
 
-- [Execution Plan](docs/execution_plan.md) - Detailed implementation roadmap
-- [API Documentation](docs/api.md) - API endpoints and usage
-- [Data Model](docs/data_model.md) - Database schema and relationships
-- [Deployment Guide](docs/deployment.md) - Production deployment instructions
+- [Demo runbook](docs/demo_runbook.md) - End-to-end commands
+- [Execution plan](docs/misc/execution_plan.md)
+- [API notes](docs/misc/api.md)
+- [Data model](docs/misc/data_model.md)
+- [Deployment](docs/misc/deployment.md)
 
 ## 🤝 Contributing
 

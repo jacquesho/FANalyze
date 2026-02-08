@@ -60,6 +60,7 @@ desktop.ini
 *.crt
 .env
 .env.*
+!.env.example
 *.secrets.yml
 
 # --- dbt ---
